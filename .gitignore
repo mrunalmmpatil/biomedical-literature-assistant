@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.DS_Store
+.ipynb_checkpoints/
+data/
+*.parquet
+*.jsonl
+*.xml.gz
+index/
+qdrant_storage/
+models/
+.streamlit/secrets.toml
