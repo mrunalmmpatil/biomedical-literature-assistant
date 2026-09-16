@@ -1,153 +1,184 @@
-# PRD: Biomedical Literature Assistant (Cardiology)
+# Biomedical Literature Assistant — Project PRD
 
-Status: draft, version 1 scope
-Last updated: 2026-09-15
+Status: Draft synthesized from the project discussion on 2026-09-16. This is the project brief, not the technical implementation specification. Proposed product defaults and open decisions below are not claims of user confirmation. The main testing boundary awaits confirmation. Issue-tracker publication awaits a destination.
 
 ## Problem Statement
 
-Clinicians and researchers cannot keep up with the medical literature. PubMed holds over 35 million citations. When a clinician needs to know what the evidence says about a specific question, the options today are a PubMed keyword search that returns hundreds of results with no synthesis, or a general chatbot that answers fluently and sometimes invents citations.
+A biomedical researcher investigating a question must locate relevant publications, read their abstracts, and assemble an answer whose supporting evidence can be checked. Relevant findings may be distributed across papers with different terminology, study populations, methods, and outcomes. A fluent summary is not sufficient if it misses relevant studies, overstates findings, or cites a paper that does not support the associated claim.
 
-What is missing is a tool that answers a clinical evidence question in a few sentences, cites the specific papers behind each statement, ranks stronger study designs above weaker ones, and says "not enough evidence" instead of guessing.
+The proposed user needs a faster starting point for understanding published evidence: a focused answer, the papers behind it, and a clear explanation when the available abstracts cannot support an answer. The assistant's usefulness to actual researchers remains a hypothesis to validate; no researcher interviews or expert evaluations have been completed.
 
-This is an evidence-lookup tool for professionals. It is not medical advice for patients.
+The project author's priorities, in order, are demonstrating AI/ML engineering capability to hiring managers, helping real users, and learning. The project must therefore produce inspectable evaluation evidence and honest limitations alongside an accessible demonstration.
 
 ## Solution
 
-A retrieval-augmented question answering system over PubMed abstracts in cardiology.
+Provide a biomedical literature assistant that accepts a research question, retrieves relevant abstracts from a defined collection, and produces an answer with verifiable citations. Users can inspect the source abstracts and supporting text to assess the answer themselves.
 
-A user asks a question in plain language. The system expands medical synonyms, searches the abstract collection with three stacked stages, weighs study design and recency, and produces a short answer where every statement carries an inline PubMed ID. When retrieval is weak, the system abstains rather than answering.
+Begin with a benchmark-led scope: select an existing biomedical evaluation resource, check that its questions and evidence support the intended task, and use it to establish the initial corpus and question coverage. No specialty is selected yet. Narrow the product scope as evidence about quality and usefulness becomes available.
 
-## Scope of Version 1
+Evaluate retrieval independently from answer generation so that improvements and failures can be attributed to the appropriate part of the system. A working demonstration alone is not evidence of retrieval quality or scientific correctness.
 
-| Area | Decision |
-|---|---|
-| Purpose | Portfolio project, later tested by 3 to 5 real clinicians or researchers |
-| Answer style | Short answers first. Long, exhaustive answers are a later phase |
-| Timeline | No date. Version 1 is done when the feature list below is complete |
-| Budget | Zero cost, permanently. Generation runs on OpenRouter free models |
-| Request budget | Assume free requests are scarce. Design for roughly 50 per day until verified |
-| Corpus | Cardiology. All publication types from the last 5 years, plus 2000 to 2020 restricted to randomized controlled trials, meta-analyses, systematic reviews and guidelines |
-| Sources | PubMed abstracts in version 1. ClinicalTrials.gov added in a later phase. PMC full text is out of scope |
-| Indexing unit | One whole abstract per stored item, title included. Only over-long abstracts are split into two overlapping halves |
-| Retrieval | Three stages built and measured one at a time: dense retrieval, lexical retrieval, cross-encoder reranking |
-| Query expansion | Local MeSH synonym dictionary applied to the lexical stage. No LLM-based query rewriting |
-| Evaluation | A hand-built set of 50 cardiology questions first, then a filtered subset of BioASQ |
+Proposed initial experience: a focused question-and-answer page with a concise answer, linked citations, an inspectable evidence list, and clear insufficient-evidence or service-unavailable states. The exact answer layout and length remain open. This is a research aid using abstracts, not a substitute for reading full papers or professional judgment.
 
 ## User Stories
 
-1. As a cardiology fellow, I want a short answer to a clinical evidence question, so that I can prepare for journal club without reading twenty abstracts.
-2. As a clinician, I want every statement in the answer to carry a PubMed ID, so that I can verify the claim at its source.
-3. As a clinician, I want the strongest study designs ranked first, so that I am not persuaded by a single case report.
-4. As a clinician, I want to see the study type next to each cited paper, so that I can judge the weight of the evidence myself.
-5. As a clinician, I want the tool to tell me when the evidence is insufficient, so that I do not act on a confident-sounding guess.
-6. As a clinician, I want studies that disagree presented separately rather than merged, so that I can see that a question is unsettled.
-7. As a clinician, I want landmark older trials to be findable, so that established evidence is not missing just because it is old.
-8. As a clinician, I want synonyms handled, so that asking about a heart attack finds papers about myocardial infarction.
-9. As a clinician, I want exact drug and trial names matched precisely, so that a question about a named trial returns that trial.
-10. As a researcher, I want an option to see the full evidence list rather than a summary, so that I can use the tool for a literature scan. (Later phase.)
-11. As a researcher, I want to filter by study type and publication year, so that I can narrow results to the evidence I trust.
-12. As a user, I want to know when a cited paper has been retracted, so that I do not rely on withdrawn evidence. (Phase decision open.)
-13. As a user, I want the tool to refuse personal medical advice, so that its role as a professional lookup tool stays clear.
-14. As the developer, I want a measured score after each retrieval stage, so that I can show what each component contributed.
-15. As the developer, I want the answer checking step to run mostly offline, so that scarce free API requests are spent on generation.
-16. As the developer, I want each stored item labelled with its source, so that clinical trial records can be added later without reindexing.
-17. As the developer, I want the generation model swappable through configuration, so that a free model disappearing does not break the system.
-18. As the developer, I want evaluation runs reproducible, so that a change in ranking can be attributed to a specific code change.
-19. As a tester, I want answers to arrive quickly enough to try ten questions in a sitting, so that giving feedback is not a chore.
-20. As a tester, I want a simple way to report that an answer was wrong, so that failures reach the developer with their question attached.
+The stories below describe proposed MVP requirements derived from the agreed direction. They do not establish that every detail has been independently confirmed.
+
+1. As a biomedical researcher, I want to ask a research question in plain language, so that I can explore evidence without constructing a database query.
+2. As a biomedical researcher, I want to understand the assistant's topic and corpus coverage, so that I know whether my question falls within its scope.
+3. As a biomedical researcher, I want relevant abstracts retrieved for my question, so that I can begin with potentially useful evidence.
+4. As a biomedical researcher, I want retrieval to handle differences in terminology where possible, so that relevant studies are not overlooked simply because they use different wording.
+5. As a biomedical researcher, I want named interventions and study details preserved, so that an answer does not confuse related but distinct concepts.
+6. As a biomedical researcher, I want a focused answer to my question, so that I can identify the main findings efficiently.
+7. As a biomedical researcher, I want factual claims linked to their supporting papers, so that I can verify the evidence.
+8. As a biomedical researcher, I want to inspect the source text associated with a citation, so that I can judge whether it supports the claim.
+9. As a biomedical researcher, I want paper titles, identifiers, and available bibliographic details, so that I can locate the original publications.
+10. As a biomedical researcher, I want to read the retrieved abstracts, so that I can assess evidence beyond the generated summary.
+11. As a biomedical researcher, I want to know that the answer uses abstracts rather than full text, so that I understand its limits.
+12. As a biomedical researcher, I want study populations and outcomes retained when relevant and available, so that findings are not presented without their context.
+13. As a biomedical researcher, I want uncertainty and limitations in the retrieved abstracts reflected in the answer, so that tentative findings are not overstated.
+14. As a biomedical researcher, I want disagreements in the available evidence acknowledged, so that conflicting findings are not merged into an unsupported conclusion.
+15. As a biomedical researcher, I want the assistant to state when evidence is insufficient, so that I am not given a confident answer without support.
+16. As a biomedical researcher, I want missing information identified as unavailable, so that absent details are not invented.
+17. As a biomedical researcher, I want absence of evidence in this collection distinguished from absence of evidence in all literature, so that I do not mistake limited coverage for a universal conclusion.
+18. As a biomedical researcher, I want service failures distinguished from insufficient evidence, so that I know whether to retry or investigate other sources.
+19. As a demo user, I want visible progress while a question is processed, so that I understand that the request is underway.
+20. As a demo user, I want a clear explanation when a free-service allowance is exhausted, so that a temporary limitation is understandable.
+21. As a demo user, I want example questions matched to the supported scope, so that I can understand how to try the assistant.
+22. As the project author, I want a benchmark with traceable reference questions and papers, so that quality can be measured against an external reference.
+23. As the project author, I want retrieval evaluated independently, so that I can determine whether failures begin with missing evidence.
+24. As the project author, I want generated answers evaluated separately, so that finding relevant papers is not mistaken for producing supported conclusions.
+25. As the project author, I want comparable retrieval baselines, so that the value of vector retrieval and any later additions is measurable.
+26. As the project author, I want evaluation questions reserved from development, so that reported results are not merely the result of tuning on the test set.
+27. As the project author, I want corpus, model, and experiment settings recorded, so that results can be interpreted and rerun where external services permit.
+28. As the project author, I want failures categorized with concrete examples, so that future improvements address observed weaknesses.
+29. As the project author, I want free usage limits respected without paid fallback, so that the project stays within its zero-paid-usage constraint.
+30. As an AI/ML hiring reviewer, I want to inspect the methodology, baselines, results, and limitations, so that I can assess engineering decisions beyond the interface.
+31. As an AI/ML hiring reviewer, I want a shareable demonstration with supporting documentation, so that I can understand the project's behavior and evidence of quality.
+32. As the project author, I want later researcher feedback to assess usefulness separately from benchmark performance, so that technical scores are not presented as proof of user value.
 
 ## Implementation Decisions
 
-### Corpus construction
+### Confirmed direction
 
-- Cardiology is defined by MeSH descriptors under cardiovascular disease. The exact descriptor set and resulting record count are to be verified against the E-utilities API before the download runs.
-- Two download passes: last 5 years unrestricted, and 2000 to 2020 restricted to high-tier publication types. The rationale is that landmark evidence predates a 5-year window, and high-tier types are a small fraction of total volume.
-- Records are stored with: PubMed ID, title, abstract, journal, publication year, MeSH descriptors, publication types, retraction status, and a source label.
-- Study type is taken from the PubMed publication type field. Recently added records may not yet carry it; a fallback is required and is an open decision.
+- Build a retrieval-augmented biomedical literature question-answering project with a vector database.
+- Prioritize AI/ML portfolio value, followed by real-user usefulness and learning.
+- Use abstracts as the initial evidence source. Answers must remain within what those abstracts support.
+- Start benchmark-led rather than choosing a specialty first. Select the initial coverage after examining usable evaluation data.
+- Evaluate retrieval separately from generated answers.
+- Use free services only. OpenRouter free models are the selected direction for generation; no exact model has been selected.
+- Investigate hosted embeddings first, including Pinecone integrated embeddings, subject to allowance and quality checks.
+- Produce a project PRD before a separate technical PRD. This document does not authorize application implementation.
 
-### Indexing
+### Proposed architecture and responsibilities
 
-- One embedding per abstract. Abstracts exceeding the encoder input limit are split into two overlapping halves, both pointing at the same PubMed ID.
-- Dense embeddings come from a biomedical retrieval encoder, MedCPT being the default candidate, run once in bulk on a free GPU session.
-- A lexical index is built alongside the dense index over the same text.
-- Storage engine is an open decision, with a local vector database and a Postgres extension as the two candidates.
-
-### Retrieval
-
-- Stage one: dense retrieval over abstract embeddings.
-- Stage two: lexical retrieval, with MeSH synonyms appended to the query terms.
-- Stage three: cross-encoder reranking over a merged candidate set. Candidate depth is a tuning parameter with an initial target of 30 to 50, constrained by CPU latency on an Apple silicon laptop.
-- Each stage is added and measured separately. The resulting per-stage score table is a required deliverable, not an optional extra.
-- Ranking adjustments for study design and recency are applied as additive bonuses to the relevance score rather than as a hard sort, so that an exact match cannot be displaced by a weakly related review. Weights are tuned against the hand-built evaluation set. Final form is an open decision.
-
-### Generation and verification
-
-- Generation runs against an OpenRouter free model, selected through configuration so it can be swapped in one place.
-- Every cited PubMed ID must appear in the retrieved set. Citations outside that set are removed before display.
-- The claim-level verification method is an open decision: a second model call, a local entailment model, or a local model with escalation to a model call only for uncertain claims.
-- Abstention behaviour and its threshold are an open decision.
-
-### Interface
-
-- Presentation layer choice is an open decision between a minimal Python app and a full web front end.
-- The answer view shows the answer text with inline citations, followed by an evidence list carrying study type and year per paper.
+- Vercel is the proposed host for the web interface and request coordination. Pinecone is the proposed hosted vector database and embedding option. These choices remain subject to compatibility, evaluation, and free-tier feasibility.
+- Separate corpus preparation, retrieval, answer generation, evidence presentation, and evaluation responsibilities without requiring separate deployed services.
+- Perform bulk corpus preparation and evaluation independently of interactive user requests; the eventual execution environment remains open.
+- Use one question-answering interface as the main behavioral boundary. A request supplies a question; the result exposes an answer or explicit outcome, retrieved evidence, and citation mappings. Exact schemas and API contracts belong in the technical PRD.
+- Preserve stable paper identities and evidence provenance. Do not invent bibliographic fields or source locations.
+- Use compatible document and query embedding configurations. Changing the embedding approach must not silently mix incompatible vectors.
+- Keep provider credentials on the server. Public source abstracts are the intended input; patient records are not part of this project.
+- A provider failure or exhausted allowance must be reported as an operational problem, not as a scientific finding or evidence insufficiency.
+- Keep generation models fixed within comparison runs and record their identity. Free-provider availability can change and must not be described as guaranteed.
+- Define citation existence checks and scientific claim-support checks separately. A valid paper identifier does not prove that its abstract supports a statement.
+- Keep exact models, retrieval stages, prompts, ranking rules, data schemas, operational limits, and deployment details in the later technical specification.
 
 ## Testing Decisions
 
-Good tests here assert externally observable behaviour: given a question, which PubMed IDs are retrieved, in what order, and whether the answer abstains. They do not assert internal scores or intermediate data structures.
+### Prior art and proposed primary boundary
 
-### Evaluation sets
+The current workspace contains no application code, domain glossary, architecture decision records, or reusable tests. An earlier implementation was removed at the user's request; it is not a baseline for this project. The separate API-maintenance project is a document-structure reference only.
 
-1. Hand-built set, 50 cardiology questions, built first. Approximately 40 answerable questions drawn from five major cardiology areas, plus approximately 10 that must trigger abstention: out-of-specialty questions, questions with no published evidence, requests for personal medical advice, and questions naming a non-existent drug.
-   - Gold PubMed IDs are taken from guideline and review reference lists rather than from the system's own search output, to avoid circularity.
-   - Each question records gold papers, the expected strongest study type, the expected answer direction, and the expected year range.
-   - The set is frozen before tuning begins.
-2. Filtered BioASQ, built second. Only questions whose gold documents fall inside the corpus are kept. Used as an external check on retrieval quality.
-3. PubMedQA is not used as a system benchmark, because it supplies the abstract directly and therefore exercises neither retrieval nor citation behaviour.
+Propose one main integration boundary: submit a question against a fixed test corpus and inspect the returned answer, retrieved paper identifiers, citations, and outcome. Exercise retrieval and generation through this boundary. Use the retrieved evidence portion to evaluate retrieval independently; evaluation must not require running the generation model for every retrieval experiment. This boundary awaits user confirmation as required by the PRD workflow.
 
-### Metrics
+### Behavior to verify
 
-- Retrieval recall at 10 and at 30. Runs locally, costs no API requests, and is therefore the metric used during iteration.
-- Ranking behaviour: whether the expected strongest study type appears in the top results.
-- Citation validity: the share of cited PubMed IDs present in the retrieved set.
-- Claim support: the share of statements supported by their cited abstract.
-- Abstention accuracy, measured on the abstention questions.
-- End-to-end latency at the 95th percentile, measured on the target laptop.
+- Relevant reference papers are retrieved for supported questions, with rankings evaluated against the chosen benchmark.
+- Displayed citations resolve to the actual retrieved evidence and its correct publication identity.
+- Unsupported questions and insufficient source material produce an explicit outcome rather than invented findings.
+- Known source limitations, missing metadata, and contradictory evidence are handled transparently in appropriate fixtures.
+- Invalid input, provider failures, and exhausted allowances produce distinct, understandable outcomes.
+- The browser flow supports question submission, result display, source inspection, and failure states.
 
-## Out of Scope for Version 1
+Test externally visible behavior rather than exact prompts, helper-function calls, vector values, or one prescribed answer wording. Add narrow tests only where the integrated boundary cannot adequately cover a material risk. Deterministic tests may use controlled model responses; label them as software-behavior tests rather than evidence of live-model quality.
 
-- PMC full text.
-- ClinicalTrials.gov integration, deferred to a later phase.
-- Long-form exhaustive answers, deferred to a later phase.
-- Any specialty other than cardiology.
-- Paid models or paid hosting of any kind.
-- Patient-facing use or clinical decision support claims.
+### Evaluation design
 
-## Open Decisions
+- Select a benchmark only after checking access terms, reference evidence, question types, and suitability for abstract-only question answering.
+- Distinguish candidate metrics from accepted targets. Retrieval recall at a chosen depth and a ranking metric are candidates; answer correctness, citation validity, claim support, and appropriate abstention are separate candidates. Exact metrics and thresholds remain open.
+- Compare a keyword retrieval baseline with vector retrieval on the same corpus and question split. Additional retrieval stages are optional experiments, not confirmed MVP commitments.
+- Freeze a held-out test set before tuning. Do not use test answers to create queries, adjust prompts, or choose retrieval settings.
+- Build a documented corpus with meaningful non-relevant candidate papers rather than indexing only the gold papers for test questions. Disclose corpus size, construction rules, missing references, and coverage limitations.
+- Record benchmark version, corpus snapshot, models, settings, experiment variants, failures, and available usage information.
+- Examine benchmark contamination and incomplete reference labels as limitations. A public benchmark may have appeared in model training data.
+- Without an expert contact, use reference answers and documented review procedures while acknowledging uncertainty in scientific interpretation. An automated judge is an evaluation aid, not clinical validation.
+- Report small-corpus and benchmark results within their tested scope. Do not claim performance over all PubMed or usefulness to real researchers without corresponding evidence.
 
-| Ref | Decision | Current recommendation |
-|---|---|---|
-| Q9 | What verifies that claims are supported | Local entailment model first, escalating to a model call only for uncertain claims |
-| Q16 | How strongly study design shifts ranking | Additive bonus tuned on the evaluation set, plus a visible badge, plus user filters |
-| Q17 | When the system abstains | Threshold on reranker score, calibrated on the abstention questions |
-| Q18 | How conflicting evidence is displayed | Separate supporting and opposing groups, never merged into one claim |
-| Q19 | Answer layout, length and warnings | Short answer, evidence table beneath, explicit non-advice notice |
-| Q20 | Retracted papers: flag, exclude, or defer | Flag in version 1 using PubMed's own retraction markers |
-| Q21 | One-time corpus download versus scheduled updates | One-time download for version 1, scheduled updates deferred |
-| Q22 | Storage engine | Local vector database for version 1 |
-| Q23 | Interface | Minimal Python app in version 1 |
-| Q24 | Where it runs | Local machine, with a recorded walkthrough as the portfolio artefact |
+## Out of Scope
 
-## Facts To Verify Before Building
+- Hospital-record analytics, SQL assistance for clinical datasets, RPA, and operational hospital reporting.
+- Patient-specific advice, diagnosis, treatment recommendations, or validated clinical decision support.
+- Full-text PDF ingestion, OCR, figure interpretation, and table extraction in the initial version.
+- An exhaustive or publication-ready systematic review, meta-analysis, or automated evidence-grading service.
+- Guaranteed coverage of all biomedical publications, all specialties, or the latest research.
+- A specialist cardiology corpus merely because an earlier deleted brief used that scope.
+- Model fine-tuning or training a new foundation model.
+- Paid APIs, paid hosting, automatic paid fallback, or bypassing service quotas.
+- Autonomous external actions beyond the explicitly authorized documentation publication workflow.
+- Detailed engineering contracts or application implementation as part of this project PRD.
 
-1. Cardiology record counts for both download passes, and the resulting index size.
-2. OpenRouter free-tier request limits, and whether they depend on a prior credit purchase.
-3. The share of PubMed abstracts that exceed the encoder input limit.
-4. Whether recently indexed records reliably carry publication type and MeSH data, and how long indexing lags.
-5. BioASQ access terms, and how many of its questions survive the corpus filter.
-6. Retraction data access through Crossref, including update cadence and licence.
-7. Cross-encoder latency on Apple silicon at candidate depths of 20, 30 and 50.
+Accounts, collaboration, uploads, saved conversations, export formats, scheduled literature updates, and dedicated feedback features are deferred unless later product discussion establishes a need.
 
-## Environment Notes
+## Further Notes
 
-- The desktop workspace shell can reach the GitHub API but is blocked from the NCBI E-utilities endpoint by the network policy. Corpus downloads therefore run either from the user's own macOS terminal or from the cloud workspace, not from the desktop workspace shell.
+### Suggested milestones
+
+1. Confirm the project brief and primary testing boundary.
+2. Assess benchmark suitability and corpus feasibility; document the selected task, coverage, access terms, and limitations.
+3. Prepare the technical PRD, resolving implementation choices and acceptance thresholds.
+4. Establish measured retrieval baselines on a fixed corpus.
+5. Add grounded generation and evaluate it separately from retrieval.
+6. Deliver the shareable web demonstration with evidence inspection and clear failure states.
+7. Publish a reproducible evaluation report, failure analysis, setup guide, and demonstration; seek researcher feedback when available.
+
+These are a proposed sequence, not authorization to start implementation or a committed schedule.
+
+### Proposed acceptance criteria
+
+- A user can submit an in-scope question and receive an answer with inspectable citations, or a clear insufficient-evidence or operational outcome.
+- Displayed evidence can be traced to the stored abstract and publication identifier; the abstract-only scope is visible.
+- A benchmark, corpus construction method, and development/test split are documented.
+- Retrieval and answer-generation results are reported separately, with baseline comparisons and representative failures.
+- Live provider tests are distinguished from mocked software tests; unavailable evaluation results are not fabricated.
+- The selected architecture fits verified free allowances for the declared demonstration workload and provides understandable exhaustion behavior.
+- A shareable demonstration and documentation explain both capabilities and limitations.
+- Numerical performance gates are agreed after benchmark assessment and before final evaluation. Until then, these criteria establish deliverables, not a claim of acceptable scientific quality.
+
+### Open decisions
+
+- Benchmark, question types, corpus source and size, specialty coverage, and coverage dates.
+- Final answer format, length, evidence presentation, and handling of user questions outside scope.
+- Generation and embedding models; whether Pinecone integrated embeddings meet retrieval needs and quota constraints.
+- Final deployment arrangement, execution environment for bulk work, and query-time embedding path.
+- Evaluation metrics, success thresholds, citation-support review, and abstention policy.
+- Timeline, researcher feedback method, and issue-tracker publication destination.
+
+### Feasibility notes from the discussion
+
+As checked on 2026-09-16, Pinecone publishes a free Starter plan with 5 million embedding tokens per month per model and 2 GB of database storage. A hypothetical 5,000 abstracts at 500 tokens each plus 1,000 questions at 50 tokens each uses 2.55 million embedding tokens. This is an illustration, not a selected corpus or verified end-to-end capacity estimate. Re-embedding, storage, database units, and provider request limits must be assessed separately.
+
+Vercel's Hobby plan is intended for personal, non-commercial usage. A portfolio demonstration must stay within the applicable service terms and quotas. OpenRouter free-model availability and allowances must be rechecked before experiments.
+
+### References
+
+- [Pinecone pricing](https://www.pinecone.io/pricing/)
+- [Pinecone rate and embedding limits](https://docs.pinecone.io/reference/api/database-limits/rate-limits)
+- [Vercel pricing](https://vercel.com/pricing)
+- [OpenRouter limits](https://openrouter.ai/docs/api_reference/limits)
+- [Reference project brief](https://github.com/mrunalmmpatil/self-maintaining-api/blob/main/PRD.md)
+- [Reference technical PRD](https://github.com/mrunalmmpatil/self-maintaining-api/blob/main/TECHNICAL_PRD.md)
+
+### Publication status
+
+A local project PRD draft has been prepared. No Git remote or issue-tracker destination is configured in the current workspace. The referenced setup-matt-pocock-skills workflow was not found in the available local skill roots. The API-maintenance repository was supplied as an example, not as this project's publication destination. Publish to the selected project issue tracker with the ready-for-agent label after the testing boundary is confirmed and the destination is identified. That label is a documentation triage requirement and does not override the user's instruction to defer application implementation.
