@@ -14,7 +14,7 @@ Build a web-based biomedical literature assistant that answers research question
 
 The assistant preserves important study context and limitations, acknowledges conflicting findings, and explains when the available evidence cannot support an answer. Its answers are limited to the indexed abstracts; it does not claim to have reviewed the full papers or all biomedical literature.
 
-Start with an existing biomedical benchmark to define and evaluate the initial scope. Select the subject coverage based on suitable questions and reference evidence rather than committing to a specialty in advance. Measure the ability to find relevant papers separately from the quality of the generated answers.
+Use BioASQ fact and list questions to define and evaluate the initial scope. Begin with 100 eligible questions, split equally between development and final testing. Select subject coverage based on suitable questions and reference evidence rather than committing to a specialty in advance. Measure the ability to find relevant papers separately from the quality of the generated answers.
 
 ## User Stories
 
@@ -43,10 +43,11 @@ Start with an existing biomedical benchmark to define and evaluate the initial s
 
 ## Implementation Decisions
 
-- Deliver a web-based question-answering experience with an answer view and an inspectable evidence list.
+- Deliver a web-based question-answering experience with a direct answer, a brief cited explanation, and an inspectable evidence list.
+- Support one research question at a time. Ask one clarifying question when needed; follow-up conversations are deferred.
 - Use retrieval-augmented generation: find relevant abstracts first, then generate an answer from that evidence.
 - Use abstracts only in the initial version. Full-text papers are deferred.
-- Select the initial collection and topic coverage through benchmark assessment. No biomedical specialty has been selected.
+- Build a mixed collection of supporting abstracts and other papers on related topics. Collection size is determined during implementation; no biomedical specialty has been selected.
 - Include citations that let users trace claims to their sources. A citation must identify supporting evidence, not simply a related paper.
 - Explain insufficient evidence and service failures as separate outcomes.
 - Keep the project within a zero-paid-usage budget.
@@ -107,7 +108,6 @@ Researcher usefulness remains to be validated. No expert contact or user study h
 
 ### Open product decisions
 
-- Initial benchmark, topic coverage, and literature collection.
-- Answer length and evidence presentation.
+- Final topic coverage and approach to collecting researcher feedback.
 - Measurable quality targets for the selected task.
-- Timeline and approach to collecting researcher feedback.
+- Timeline.

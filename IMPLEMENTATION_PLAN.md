@@ -30,14 +30,14 @@ This document schedules future work. Application development, dependency install
 | Conversation scope | One research question and its clarification; follow-up conversations are deferred |
 | Budget | No paid services or paid fallback |
 
-The technical PRD will define exact contracts and operating rules. Choices labeled proposed or open here must not be represented as separately approved decisions.
+The [technical PRD](TECHNICAL_PRD.md) defines contracts, operating rules, and implementation defaults. Defaults can be resolved through documented development work; they are not additional product decisions requiring individual approval.
 
 ## 3. Documents needed
 
 ### Before application implementation
 
 1. **Project PRD:** existing product requirements. Reconcile its open-decision list with the subsequently agreed question types, benchmark, and answer format when finalizing the planning documents.
-2. **Technical PRD:** required next. Define architecture, component responsibilities, data and API contracts, request outcomes, provider integration, retrieval behavior, limits, evaluation policy, and completion criteria.
+2. **Technical PRD:** prepared alongside this plan. Define architecture, component responsibilities, data and API contracts, request outcomes, provider integration, retrieval behavior, limits, evaluation policy, and completion criteria.
 3. **Implementation plan:** this document. Defines sequencing, dependencies, deliverables, and evidence required to complete each milestone.
 
 Keep the data-selection protocol, evaluation design, initial UI sketch, and API contracts as sections of the technical PRD. They do not need separate planning documents at this scale.
@@ -50,14 +50,14 @@ Keep the data-selection protocol, evaluation design, initial UI sketch, and API 
 
 An architecture decision record is useful only if a major choice changes. Separate design documents, user manuals, infrastructure specifications, and a generic agent framework are not prerequisites.
 
-## 4. Decisions to resolve
+## 4. Engineering defaults and implementation checks
 
-### Resolve in the technical PRD before coding
+### Starting directions specified in the technical PRD
 
 | Decision | Recommended starting direction | Why it matters |
 |---|---|---|
 | Backend responsibilities | One shared Python retrieval/answering service used by the API and evaluation runner | Ensures experiments test the pipeline deployed to users |
-| Searchable unit | Title plus complete abstract when it fits; split overlong abstracts into overlapping passages with the same paper ID | Preserves study context and traceable citations; this recommendation is not yet confirmed |
+| Searchable unit | Title plus complete abstract when it fits; split overlong abstracts into overlapping passages with the same paper ID | Preserves study context and traceable citations; sizing is resolved during implementation |
 | Keyword baseline | BM25 over the same title/abstract content as vector retrieval | Provides a meaningful, understandable comparison |
 | Clarification behavior | One clarification response; if still underspecified, explain what is missing and invite a new question | Prevents accidental multi-turn chat scope |
 | Answer outcomes | Answered, needs clarification, insufficient evidence, unsupported request, and service unavailable | Separates scientific limits from operational failures |
@@ -103,7 +103,7 @@ Estimates below are rough hands-on development time for one developer. They excl
 
 **Work**
 
-- Resolve the pre-coding decisions above and prepare the technical PRD.
+- Review the technical PRD and its distinction between agreed scope and adjustable engineering defaults.
 - Include an answer-page sketch, request/response examples, evidence schema, evaluation protocol, and bounded-request policy.
 - Record assumptions and feasibility gates separately from established decisions.
 - Reconcile the project PRD with the agreed product scope without adding engineering detail to it.
@@ -146,7 +146,7 @@ Estimates below are rough hands-on development time for one developer. They excl
 
 - Implement one retrieval interface returning ranked papers and source text.
 - Add BM25 and Pinecone vector retrieval over the same corpus.
-- Apply the agreed searchable-unit policy; preserve source offsets and paper IDs. Deduplicate passage results at paper level for paper-level scoring.
+- Apply the versioned searchable-unit policy selected during implementation; preserve source offsets and paper IDs. Deduplicate passage results at paper level for paper-level scoring.
 - Compare methods using development questions and record retrieval depth, misses, and timing.
 - Freeze the selected settings before the final test run. Retain both baselines even if one performs poorly.
 
@@ -226,6 +226,7 @@ Mock provider responses for repeatable software tests. Use real providers for se
 ## 9. Reference documents
 
 - [Project PRD](PRD.md)
+- [Technical PRD](TECHNICAL_PRD.md)
 - [Reference project's technical PRD and completion gates](https://github.com/mrunalmmpatil/self-maintaining-api/blob/main/TECHNICAL_PRD.md)
 - [BioASQ task guidance](https://participants-area.bioasq.org/general_information/Task14b/)
 - [Pinecone model guidance](https://www.pinecone.io/learn/nvidia-for-pinecone-inference/)
