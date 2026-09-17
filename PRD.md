@@ -1,184 +1,113 @@
-# Biomedical Literature Assistant — Project PRD
-
-Status: Draft synthesized from the project discussion on 2026-09-16. This is the project brief, not the technical implementation specification. Proposed product defaults and open decisions below are not claims of user confirmation. The main testing boundary awaits confirmation. Issue-tracker publication awaits a destination.
+# Biomedical Literature Assistant — MVP
 
 ## Problem Statement
 
-A biomedical researcher investigating a question must locate relevant publications, read their abstracts, and assemble an answer whose supporting evidence can be checked. Relevant findings may be distributed across papers with different terminology, study populations, methods, and outcomes. A fluent summary is not sufficient if it misses relevant studies, overstates findings, or cites a paper that does not support the associated claim.
+Biomedical researchers answering a literature question must find relevant papers, read their abstracts, and piece together the findings. This takes time, particularly when studies use different terminology or report different results.
 
-The proposed user needs a faster starting point for understanding published evidence: a focused answer, the papers behind it, and a clear explanation when the available abstracts cannot support an answer. The assistant's usefulness to actual researchers remains a hypothesis to validate; no researcher interviews or expert evaluations have been completed.
+A generated summary is useful only if researchers can verify its claims. Missing relevant studies, overlooking limitations, or presenting unsupported conclusions can make a quick answer misleading.
 
-The project author's priorities, in order, are demonstrating AI/ML engineering capability to hiring managers, helping real users, and learning. The project must therefore produce inspectable evaluation evidence and honest limitations alongside an accessible demonstration.
+Researchers need a way to get an initial answer, inspect the evidence behind it, and recognize when the available literature is insufficient to answer their question.
 
 ## Solution
 
-Provide a biomedical literature assistant that accepts a research question, retrieves relevant abstracts from a defined collection, and produces an answer with verifiable citations. Users can inspect the source abstracts and supporting text to assess the answer themselves.
+Build a web-based biomedical literature assistant that answers research questions using published abstracts. A researcher asks a question in plain language and receives a focused answer with citations and the supporting abstracts available for inspection.
 
-Begin with a benchmark-led scope: select an existing biomedical evaluation resource, check that its questions and evidence support the intended task, and use it to establish the initial corpus and question coverage. No specialty is selected yet. Narrow the product scope as evidence about quality and usefulness becomes available.
+The assistant preserves important study context and limitations, acknowledges conflicting findings, and explains when the available evidence cannot support an answer. Its answers are limited to the indexed abstracts; it does not claim to have reviewed the full papers or all biomedical literature.
 
-Evaluate retrieval independently from answer generation so that improvements and failures can be attributed to the appropriate part of the system. A working demonstration alone is not evidence of retrieval quality or scientific correctness.
-
-Proposed initial experience: a focused question-and-answer page with a concise answer, linked citations, an inspectable evidence list, and clear insufficient-evidence or service-unavailable states. The exact answer layout and length remain open. This is a research aid using abstracts, not a substitute for reading full papers or professional judgment.
+Start with an existing biomedical benchmark to define and evaluate the initial scope. Select the subject coverage based on suitable questions and reference evidence rather than committing to a specialty in advance. Measure the ability to find relevant papers separately from the quality of the generated answers.
 
 ## User Stories
 
-The stories below describe proposed MVP requirements derived from the agreed direction. They do not establish that every detail has been independently confirmed.
-
-1. As a biomedical researcher, I want to ask a research question in plain language, so that I can explore evidence without constructing a database query.
-2. As a biomedical researcher, I want to understand the assistant's topic and corpus coverage, so that I know whether my question falls within its scope.
-3. As a biomedical researcher, I want relevant abstracts retrieved for my question, so that I can begin with potentially useful evidence.
-4. As a biomedical researcher, I want retrieval to handle differences in terminology where possible, so that relevant studies are not overlooked simply because they use different wording.
-5. As a biomedical researcher, I want named interventions and study details preserved, so that an answer does not confuse related but distinct concepts.
-6. As a biomedical researcher, I want a focused answer to my question, so that I can identify the main findings efficiently.
-7. As a biomedical researcher, I want factual claims linked to their supporting papers, so that I can verify the evidence.
-8. As a biomedical researcher, I want to inspect the source text associated with a citation, so that I can judge whether it supports the claim.
-9. As a biomedical researcher, I want paper titles, identifiers, and available bibliographic details, so that I can locate the original publications.
-10. As a biomedical researcher, I want to read the retrieved abstracts, so that I can assess evidence beyond the generated summary.
-11. As a biomedical researcher, I want to know that the answer uses abstracts rather than full text, so that I understand its limits.
-12. As a biomedical researcher, I want study populations and outcomes retained when relevant and available, so that findings are not presented without their context.
-13. As a biomedical researcher, I want uncertainty and limitations in the retrieved abstracts reflected in the answer, so that tentative findings are not overstated.
-14. As a biomedical researcher, I want disagreements in the available evidence acknowledged, so that conflicting findings are not merged into an unsupported conclusion.
-15. As a biomedical researcher, I want the assistant to state when evidence is insufficient, so that I am not given a confident answer without support.
-16. As a biomedical researcher, I want missing information identified as unavailable, so that absent details are not invented.
-17. As a biomedical researcher, I want absence of evidence in this collection distinguished from absence of evidence in all literature, so that I do not mistake limited coverage for a universal conclusion.
-18. As a biomedical researcher, I want service failures distinguished from insufficient evidence, so that I know whether to retry or investigate other sources.
-19. As a demo user, I want visible progress while a question is processed, so that I understand that the request is underway.
-20. As a demo user, I want a clear explanation when a free-service allowance is exhausted, so that a temporary limitation is understandable.
-21. As a demo user, I want example questions matched to the supported scope, so that I can understand how to try the assistant.
-22. As the project author, I want a benchmark with traceable reference questions and papers, so that quality can be measured against an external reference.
-23. As the project author, I want retrieval evaluated independently, so that I can determine whether failures begin with missing evidence.
-24. As the project author, I want generated answers evaluated separately, so that finding relevant papers is not mistaken for producing supported conclusions.
-25. As the project author, I want comparable retrieval baselines, so that the value of vector retrieval and any later additions is measurable.
-26. As the project author, I want evaluation questions reserved from development, so that reported results are not merely the result of tuning on the test set.
-27. As the project author, I want corpus, model, and experiment settings recorded, so that results can be interpreted and rerun where external services permit.
-28. As the project author, I want failures categorized with concrete examples, so that future improvements address observed weaknesses.
-29. As the project author, I want free usage limits respected without paid fallback, so that the project stays within its zero-paid-usage constraint.
-30. As an AI/ML hiring reviewer, I want to inspect the methodology, baselines, results, and limitations, so that I can assess engineering decisions beyond the interface.
-31. As an AI/ML hiring reviewer, I want a shareable demonstration with supporting documentation, so that I can understand the project's behavior and evidence of quality.
-32. As the project author, I want later researcher feedback to assess usefulness separately from benchmark performance, so that technical scores are not presented as proof of user value.
+1. As a biomedical researcher, I want to ask a question in plain language, so that I can explore the literature without constructing a complex search query.
+2. As a biomedical researcher, I want to understand the topics and publications covered, so that I know whether the assistant is suitable for my question.
+3. As a biomedical researcher, I want to see example questions, so that I can understand how to use the assistant.
+4. As a biomedical researcher, I want relevant papers found even when they use different terminology, so that I can discover evidence I might otherwise miss.
+5. As a biomedical researcher, I want a focused answer to my question, so that I can understand the main findings before reading individual papers.
+6. As a biomedical researcher, I want factual claims connected to citations, so that I can verify where the information came from.
+7. As a biomedical researcher, I want to inspect the text supporting a claim, so that I can judge whether the interpretation is justified.
+8. As a biomedical researcher, I want to see paper titles and available publication details, so that I can identify and locate the original studies.
+9. As a biomedical researcher, I want access to the retrieved abstracts, so that I can explore the evidence beyond the summary.
+10. As a biomedical researcher, I want relevant study populations and outcomes preserved in the answer, so that I understand where the findings apply.
+11. As a biomedical researcher, I want limitations and uncertainty reflected in the answer, so that tentative findings are not presented as established conclusions.
+12. As a biomedical researcher, I want disagreements between studies acknowledged, so that I can recognize when the evidence is unsettled.
+13. As a biomedical researcher, I want missing details identified as unavailable, so that I do not mistake an assumption for a reported finding.
+14. As a biomedical researcher, I want a clear response when evidence is insufficient, so that I know when further investigation is needed.
+15. As a biomedical researcher, I want to know that answers are based on abstracts, so that I understand the limits of the summary.
+16. As a biomedical researcher, I want a lack of results distinguished from a claim that no evidence exists, so that limited collection coverage does not mislead me.
+17. As a user, I want visible progress while my question is processed, so that I know the request is underway.
+18. As a user, I want a clear explanation when the service is unavailable, so that I know whether to try again later.
+19. As the project author, I want retrieval and answer quality evaluated separately, so that I can identify what needs improvement.
+20. As the project author, I want comparisons against a baseline and examples of failures, so that I can demonstrate the system's strengths and limitations.
+21. As the project author, I want the project to operate without paid services, so that I can maintain it within my budget.
+22. As an AI/ML hiring reviewer, I want a working demonstration and an understandable evaluation report, so that I can assess the project beyond its interface.
 
 ## Implementation Decisions
 
-### Confirmed direction
-
-- Build a retrieval-augmented biomedical literature question-answering project with a vector database.
-- Prioritize AI/ML portfolio value, followed by real-user usefulness and learning.
-- Use abstracts as the initial evidence source. Answers must remain within what those abstracts support.
-- Start benchmark-led rather than choosing a specialty first. Select the initial coverage after examining usable evaluation data.
-- Evaluate retrieval separately from generated answers.
-- Use free services only. OpenRouter free models are the selected direction for generation; no exact model has been selected.
-- Investigate hosted embeddings first, including Pinecone integrated embeddings, subject to allowance and quality checks.
-- Produce a project PRD before a separate technical PRD. This document does not authorize application implementation.
-
-### Proposed architecture and responsibilities
-
-- Vercel is the proposed host for the web interface and request coordination. Pinecone is the proposed hosted vector database and embedding option. These choices remain subject to compatibility, evaluation, and free-tier feasibility.
-- Separate corpus preparation, retrieval, answer generation, evidence presentation, and evaluation responsibilities without requiring separate deployed services.
-- Perform bulk corpus preparation and evaluation independently of interactive user requests; the eventual execution environment remains open.
-- Use one question-answering interface as the main behavioral boundary. A request supplies a question; the result exposes an answer or explicit outcome, retrieved evidence, and citation mappings. Exact schemas and API contracts belong in the technical PRD.
-- Preserve stable paper identities and evidence provenance. Do not invent bibliographic fields or source locations.
-- Use compatible document and query embedding configurations. Changing the embedding approach must not silently mix incompatible vectors.
-- Keep provider credentials on the server. Public source abstracts are the intended input; patient records are not part of this project.
-- A provider failure or exhausted allowance must be reported as an operational problem, not as a scientific finding or evidence insufficiency.
-- Keep generation models fixed within comparison runs and record their identity. Free-provider availability can change and must not be described as guaranteed.
-- Define citation existence checks and scientific claim-support checks separately. A valid paper identifier does not prove that its abstract supports a statement.
-- Keep exact models, retrieval stages, prompts, ranking rules, data schemas, operational limits, and deployment details in the later technical specification.
+- Deliver a web-based question-answering experience with an answer view and an inspectable evidence list.
+- Use retrieval-augmented generation: find relevant abstracts first, then generate an answer from that evidence.
+- Use abstracts only in the initial version. Full-text papers are deferred.
+- Select the initial collection and topic coverage through benchmark assessment. No biomedical specialty has been selected.
+- Include citations that let users trace claims to their sources. A citation must identify supporting evidence, not simply a related paper.
+- Explain insufficient evidence and service failures as separate outcomes.
+- Keep the project within a zero-paid-usage budget.
+- Document the detailed architecture, service choices, models, and operating limits separately in the technical PRD.
 
 ## Testing Decisions
 
-### Prior art and proposed primary boundary
-
-The current workspace contains no application code, domain glossary, architecture decision records, or reusable tests. An earlier implementation was removed at the user's request; it is not a baseline for this project. The separate API-maintenance project is a document-structure reference only.
-
-Propose one main integration boundary: submit a question against a fixed test corpus and inspect the returned answer, retrieved paper identifiers, citations, and outcome. Exercise retrieval and generation through this boundary. Use the retrieved evidence portion to evaluate retrieval independently; evaluation must not require running the generation model for every retrieval experiment. This boundary awaits user confirmation as required by the PRD workflow.
-
-### Behavior to verify
-
-- Relevant reference papers are retrieved for supported questions, with rankings evaluated against the chosen benchmark.
-- Displayed citations resolve to the actual retrieved evidence and its correct publication identity.
-- Unsupported questions and insufficient source material produce an explicit outcome rather than invented findings.
-- Known source limitations, missing metadata, and contradictory evidence are handled transparently in appropriate fixtures.
-- Invalid input, provider failures, and exhausted allowances produce distinct, understandable outcomes.
-- The browser flow supports question submission, result display, source inspection, and failure states.
-
-Test externally visible behavior rather than exact prompts, helper-function calls, vector values, or one prescribed answer wording. Add narrow tests only where the integrated boundary cannot adequately cover a material risk. Deterministic tests may use controlled model responses; label them as software-behavior tests rather than evidence of live-model quality.
-
-### Evaluation design
-
-- Select a benchmark only after checking access terms, reference evidence, question types, and suitability for abstract-only question answering.
-- Distinguish candidate metrics from accepted targets. Retrieval recall at a chosen depth and a ranking metric are candidates; answer correctness, citation validity, claim support, and appropriate abstention are separate candidates. Exact metrics and thresholds remain open.
-- Compare a keyword retrieval baseline with vector retrieval on the same corpus and question split. Additional retrieval stages are optional experiments, not confirmed MVP commitments.
-- Freeze a held-out test set before tuning. Do not use test answers to create queries, adjust prompts, or choose retrieval settings.
-- Build a documented corpus with meaningful non-relevant candidate papers rather than indexing only the gold papers for test questions. Disclose corpus size, construction rules, missing references, and coverage limitations.
-- Record benchmark version, corpus snapshot, models, settings, experiment variants, failures, and available usage information.
-- Examine benchmark contamination and incomplete reference labels as limitations. A public benchmark may have appeared in model training data.
-- Without an expert contact, use reference answers and documented review procedures while acknowledging uncertainty in scientific interpretation. An automated judge is an evaluation aid, not clinical validation.
-- Report small-corpus and benchmark results within their tested scope. Do not claim performance over all PubMed or usefulness to real researchers without corresponding evidence.
+- Test the complete user workflow: ask a question, receive an answer or a clear explanation, and inspect the cited evidence.
+- Evaluate whether relevant papers are found separately from whether the answer is correct and supported.
+- Use an existing biomedical benchmark with reference questions and evidence suitable for abstract-based answers.
+- Compare retrieval against a baseline using the same questions and literature collection.
+- Reserve evaluation questions that are not used while improving the system.
+- Check that citations identify the correct papers and that cited text supports the associated claims.
+- Cover insufficient evidence, missing information, conflicting findings, invalid input, and service unavailability.
+- Test observable behavior rather than internal implementation choices or exact answer wording.
+- Report representative failures and the limits of the evaluation. Benchmark results do not establish clinical reliability or usefulness to researchers without further validation.
+- There are no existing application tests to reuse. The proposed primary testing boundary is the complete question-to-result workflow, with retrieved papers available for separate evaluation.
 
 ## Out of Scope
 
-- Hospital-record analytics, SQL assistance for clinical datasets, RPA, and operational hospital reporting.
-- Patient-specific advice, diagnosis, treatment recommendations, or validated clinical decision support.
-- Full-text PDF ingestion, OCR, figure interpretation, and table extraction in the initial version.
-- An exhaustive or publication-ready systematic review, meta-analysis, or automated evidence-grading service.
-- Guaranteed coverage of all biomedical publications, all specialties, or the latest research.
-- A specialist cardiology corpus merely because an earlier deleted brief used that scope.
-- Model fine-tuning or training a new foundation model.
-- Paid APIs, paid hosting, automatic paid fallback, or bypassing service quotas.
-- Autonomous external actions beyond the explicitly authorized documentation publication workflow.
-- Detailed engineering contracts or application implementation as part of this project PRD.
-
-Accounts, collaboration, uploads, saved conversations, export formats, scheduled literature updates, and dedicated feedback features are deferred unless later product discussion establishes a need.
+- Full-text PDF processing, scanned documents, figures, and tables.
+- Patient-specific medical advice, diagnosis, or treatment recommendations.
+- Hospital-record analysis, clinical dataset querying, and reporting automation.
+- Automated systematic reviews, meta-analyses, or publication-ready review writing.
+- Comprehensive coverage of all biomedical literature or guaranteed access to the latest publications.
+- User accounts, collaboration, document uploads, and saved conversation history in the initial version.
+- Paid services and automatic upgrades to paid plans.
 
 ## Further Notes
 
-### Suggested milestones
+### Project priorities
 
-1. Confirm the project brief and primary testing boundary.
-2. Assess benchmark suitability and corpus feasibility; document the selected task, coverage, access terms, and limitations.
-3. Prepare the technical PRD, resolving implementation choices and acceptance thresholds.
-4. Establish measured retrieval baselines on a fixed corpus.
-5. Add grounded generation and evaluate it separately from retrieval.
-6. Deliver the shareable web demonstration with evidence inspection and clear failure states.
-7. Publish a reproducible evaluation report, failure analysis, setup guide, and demonstration; seek researcher feedback when available.
+1. Demonstrate AI/ML engineering capability in a portfolio.
+2. Provide a useful starting point for biomedical researchers.
+3. Develop practical experience with retrieval-augmented generation and evaluation.
 
-These are a proposed sequence, not authorization to start implementation or a committed schedule.
+Researcher usefulness remains to be validated. No expert contact or user study has been established yet.
 
-### Proposed acceptance criteria
+### Milestones
 
-- A user can submit an in-scope question and receive an answer with inspectable citations, or a clear insufficient-evidence or operational outcome.
-- Displayed evidence can be traced to the stored abstract and publication identifier; the abstract-only scope is visible.
-- A benchmark, corpus construction method, and development/test split are documented.
-- Retrieval and answer-generation results are reported separately, with baseline comparisons and representative failures.
-- Live provider tests are distinguished from mocked software tests; unavailable evaluation results are not fabricated.
-- The selected architecture fits verified free allowances for the declared demonstration workload and provides understandable exhaustion behavior.
-- A shareable demonstration and documentation explain both capabilities and limitations.
-- Numerical performance gates are agreed after benchmark assessment and before final evaluation. Until then, these criteria establish deliverables, not a claim of acceptable scientific quality.
+1. Select a suitable benchmark and define the initial literature coverage.
+2. Complete the technical PRD.
+3. Establish and evaluate literature retrieval.
+4. Add answers with citations and assess their quality.
+5. Deliver the web interface and verify the complete user workflow.
+6. Prepare the demonstration, evaluation report, and documentation.
 
-### Open decisions
+### Acceptance criteria
 
-- Benchmark, question types, corpus source and size, specialty coverage, and coverage dates.
-- Final answer format, length, evidence presentation, and handling of user questions outside scope.
-- Generation and embedding models; whether Pinecone integrated embeddings meet retrieval needs and quota constraints.
-- Final deployment arrangement, execution environment for bulk work, and query-time embedding path.
-- Evaluation metrics, success thresholds, citation-support review, and abstention policy.
-- Timeline, researcher feedback method, and issue-tracker publication destination.
+- A user can submit an in-scope research question and receive a focused answer with citations.
+- The user can inspect the cited abstracts and locate the original papers.
+- The interface clearly identifies the abstract-only evidence scope.
+- Insufficient evidence and service failures produce understandable responses.
+- Retrieval and answer quality have separate documented evaluation results.
+- The evaluation includes a baseline comparison, failure examples, and coverage limitations.
+- A shareable demonstration and setup documentation are available.
+- The project operates within the agreed free-service constraint.
 
-### Feasibility notes from the discussion
+### Open product decisions
 
-As checked on 2026-09-16, Pinecone publishes a free Starter plan with 5 million embedding tokens per month per model and 2 GB of database storage. A hypothetical 5,000 abstracts at 500 tokens each plus 1,000 questions at 50 tokens each uses 2.55 million embedding tokens. This is an illustration, not a selected corpus or verified end-to-end capacity estimate. Re-embedding, storage, database units, and provider request limits must be assessed separately.
-
-Vercel's Hobby plan is intended for personal, non-commercial usage. A portfolio demonstration must stay within the applicable service terms and quotas. OpenRouter free-model availability and allowances must be rechecked before experiments.
-
-### References
-
-- [Pinecone pricing](https://www.pinecone.io/pricing/)
-- [Pinecone rate and embedding limits](https://docs.pinecone.io/reference/api/database-limits/rate-limits)
-- [Vercel pricing](https://vercel.com/pricing)
-- [OpenRouter limits](https://openrouter.ai/docs/api_reference/limits)
-- [Reference project brief](https://github.com/mrunalmmpatil/self-maintaining-api/blob/main/PRD.md)
-- [Reference technical PRD](https://github.com/mrunalmmpatil/self-maintaining-api/blob/main/TECHNICAL_PRD.md)
-
-### Publication status
-
-A local project PRD draft has been prepared. No Git remote or issue-tracker destination is configured in the current workspace. The referenced setup-matt-pocock-skills workflow was not found in the available local skill roots. The API-maintenance repository was supplied as an example, not as this project's publication destination. Publish to the selected project issue tracker with the ready-for-agent label after the testing boundary is confirmed and the destination is identified. That label is a documentation triage requirement and does not override the user's instruction to defer application implementation.
+- Initial benchmark, topic coverage, and literature collection.
+- Answer length and evidence presentation.
+- Measurable quality targets for the selected task.
+- Timeline and approach to collecting researcher feedback.
