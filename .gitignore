@@ -1,15 +1,37 @@
+# Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
 .venv/
 venv/
-.env
-.DS_Store
 .ipynb_checkpoints/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+
+# Data: corpora, snapshots, and indexes are reproduced from manifests,
+# never committed. Answer keys must never reach the repository.
 data/
+index/
+models/
 *.parquet
 *.jsonl
 *.xml.gz
-index/
-qdrant_storage/
-models/
-.streamlit/secrets.toml
+
+# Evaluation: definitions and permitted summaries are tracked; raw runs are not.
+evaluation/runs/

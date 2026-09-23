@@ -40,6 +40,8 @@ Use the [implementation plan](IMPLEMENTATION_PLAN.md) for milestone sequencing. 
 
 ## 2. Architecture and responsibilities
 
+For a plain-language walkthrough with diagrams, see the [architecture guide](ARCHITECTURE.md).
+
 ```text
 Browser: Next.js / TypeScript
               |
