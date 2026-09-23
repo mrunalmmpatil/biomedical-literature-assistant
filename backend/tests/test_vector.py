@@ -9,7 +9,7 @@ from bla.retrieval.vector import (
     MAX_EMBED_CHARS,
     UPSERT_BATCH,
     PineconeRetriever,
-    to_record,
+    to_records,
     upsert_papers,
 )
 from tests.conftest import paper
@@ -65,17 +65,26 @@ def test_depth_is_bounded():
 
 
 def test_record_text_matches_what_bm25_indexes(corpus):
-    record = to_record(corpus[0])
+    [record] = to_records(corpus[0])
     assert record["_id"] == record["pmid"] == "1001"
     assert record["text"] == f"{corpus[0].title}\n{corpus[0].abstract}"
 
 
-def test_upsert_batches_and_refuses_overlong_records_instead_of_truncating():
+def test_upsert_batches_and_splits_overlong_papers_instead_of_truncating():
     papers = [paper(str(i + 1), "t", "abstract") for i in range(UPSERT_BATCH + 5)]
-    long = paper("5000", "t", "x" * MAX_EMBED_CHARS)
+    long = paper("5000", "t", "A sentence of evidence. " * 400)
     index = FakeIndex()
-    upserted, refused = upsert_papers(index, "v1", [*papers, long])
-    assert upserted == UPSERT_BATCH + 5
-    assert refused == ["5000"]
-    assert [len(records) for _, records in index.upserts] == [UPSERT_BATCH, 5]
+    progress = []
+    upserted = upsert_papers(index, "v1", [*papers, long], on_batch=progress.append)
+    long_records = [r for _, batch in index.upserts for r in batch if r["pmid"] == "5000"]
+    assert len(long_records) > 1
+    assert all(len(r["text"]) <= MAX_EMBED_CHARS for r in long_records)
+    assert [r["_id"] for r in long_records][:2] == ["5000#0", "5000#1"]
+    assert upserted == UPSERT_BATCH + 5 + len(long_records) == progress[-1]
     assert all(ns == "v1" for ns, _ in index.upserts)
+
+
+def test_search_reports_the_best_unit_of_each_paper():
+    index = FakeIndex([hit("7#1", "7", 0.9), hit("7#0", "7", 0.4)])
+    [only] = PineconeRetriever(index, "v1").search("q", k=5)
+    assert only.unit_id == "7#1"

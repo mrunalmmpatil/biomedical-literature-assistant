@@ -1,8 +1,9 @@
 """Okapi BM25 keyword baseline (technical PRD section 5).
 
 Implemented directly rather than through a library so the scoring formula, the
-tokenizer, and tie-breaking are all visible and versioned with the project. The
-searchable unit is the paper's title plus its complete abstract.
+tokenizer, and tie-breaking are all visible and versioned with the project. It
+indexes the same searchable units as the vector index (bla/units.py), and a
+paper scores as its best unit.
 """
 
 import heapq
@@ -11,9 +12,9 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable
 
 from bla.contracts import Paper, RetrievalHit, RetrievalMethod
-from bla.corpus import searchable_text
 from bla.retrieval import check_depth
 from bla.retrieval.tokenize import tokenize
+from bla.units import units
 
 
 class BM25Retriever:
@@ -22,7 +23,8 @@ class BM25Retriever:
     def __init__(self, papers: Iterable[Paper], k1: float = 1.5, b: float = 0.75) -> None:
         self.k1 = k1
         self.b = b
-        self._pmids: list[str] = []
+        self._pmids: list[str] = []  # per unit
+        self._unit_ids: list[str] = []
         self._lengths: list[int] = []
         # term -> [(document index, term frequency)]
         self._postings: dict[str, list[tuple[int, int]]] = defaultdict(list)
@@ -32,12 +34,15 @@ class BM25Retriever:
             if paper.pmid in seen:
                 raise ValueError(f"duplicate PMID in corpus: {paper.pmid}")
             seen.add(paper.pmid)
-            doc = len(self._pmids)
-            terms = tokenize(searchable_text(paper.title, paper.abstract))
-            self._pmids.append(paper.pmid)
-            self._lengths.append(len(terms))
-            for term, tf in Counter(terms).items():
-                self._postings[term].append((doc, tf))
+            for unit in units(paper):
+                doc = len(self._pmids)
+                terms = tokenize(unit.text)
+                self._pmids.append(paper.pmid)
+                self._unit_ids.append(unit.id)
+                self._lengths.append(len(terms))
+                for term, tf in Counter(terms).items():
+                    self._postings[term].append((doc, tf))
+        self._papers = len(seen)
 
         n = len(self._pmids)
         self._avg_length = sum(self._lengths) / n if n else 0.0
@@ -48,7 +53,8 @@ class BM25Retriever:
         }
 
     def __len__(self) -> int:
-        return len(self._pmids)
+        """Papers indexed (not units)."""
+        return self._papers
 
     def search(self, query: str, k: int = 10) -> list[RetrievalHit]:
         check_depth(k)
@@ -63,9 +69,23 @@ class BM25Retriever:
                 norm = 1 - self.b + self.b * self._lengths[doc] / self._avg_length
                 scores[doc] += idf * tf * (self.k1 + 1) / (tf + self.k1 * norm)
 
+        # A paper scores as its best unit (section 5's initial rule).
+        best_unit: dict[str, tuple[float, int]] = {}
+        for doc, score in scores.items():
+            pmid = self._pmids[doc]
+            current = best_unit.get(pmid)
+            if current is None or (score, -doc) > (current[0], -current[1]):
+                best_unit[pmid] = (score, doc)
+
         # Ties break on PMID so identical inputs always produce identical rankings.
-        best = heapq.nsmallest(k, scores.items(), key=lambda s: (-s[1], self._pmids[s[0]]))
+        best = heapq.nsmallest(k, best_unit.items(), key=lambda item: (-item[1][0], item[0]))
         return [
-            RetrievalHit(pmid=self._pmids[doc], rank=rank, score=score, method=self.method)
-            for rank, (doc, score) in enumerate(best, start=1)
+            RetrievalHit(
+                pmid=pmid,
+                rank=rank,
+                score=score,
+                method=self.method,
+                unit_id=self._unit_ids[doc],
+            )
+            for rank, (pmid, (score, doc)) in enumerate(best, start=1)
         ]

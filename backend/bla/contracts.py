@@ -75,6 +75,9 @@ class RetrievalHit(BaseModel):
     rank: int = Field(ge=1)
     score: float
     method: RetrievalMethod
+    unit_id: str | None = None
+    """The best-scoring searchable unit: the PMID itself, or "<pmid>#<n>" for a
+    passage of an overlong paper (bla/units.py)."""
 
 
 class Excerpt(BaseModel):

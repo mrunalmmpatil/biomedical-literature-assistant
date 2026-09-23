@@ -1,0 +1,72 @@
+{
+  "run_id": "retrieval-development-20260923T234633Z",
+  "questions": 50,
+  "paired": {
+    "recall_at_5": {
+      "mean_difference_vector_minus_bm25": 0.017051120176120177,
+      "bootstrap_95ci": [
+        -0.015569055944055948,
+        0.05090785603285603
+      ],
+      "questions_better": {
+        "vector": 11,
+        "bm25": 9,
+        "tie": 30
+      }
+    },
+    "recall_at_10": {
+      "mean_difference_vector_minus_bm25": 0.012824852163087453,
+      "bootstrap_95ci": [
+        -0.02942580567580568,
+        0.05830086580086579
+      ],
+      "questions_better": {
+        "vector": 13,
+        "bm25": 13,
+        "tie": 24
+      }
+    },
+    "reciprocal_rank_at_10": {
+      "mean_difference_vector_minus_bm25": -0.027999999999999997,
+      "bootstrap_95ci": [
+        -0.10433333333333333,
+        0.049
+      ],
+      "questions_better": {
+        "vector": 7,
+        "bm25": 10,
+        "tie": 33
+      }
+    }
+  },
+  "relevant_papers_per_question": {
+    "min": 1,
+    "median": 7,
+    "max": 84,
+    "questions_over_10": 20
+  },
+  "recall_at_10_vs_ceiling": {
+    "bm25": 0.7587857142857143,
+    "vector": 0.7646904761904761,
+    "mean_ceiling": 0.8398504627181097
+  },
+  "miss_depth": {
+    "bm25": {
+      "missed_relevant_papers": 345,
+      "11-20": 118,
+      "not_in_top_50": 97,
+      "21-50": 130
+    },
+    "vector": {
+      "missed_relevant_papers": 345,
+      "21-50": 140,
+      "11-20": 100,
+      "not_in_top_50": 105
+    }
+  },
+  "recall_at_10_union_of_methods": 0.760104781112134,
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20260923
+  }
+}
