@@ -23,9 +23,13 @@ from bla.contracts import Paper, SourceStatus
 from bla.corpus import content_hash, normalize_text
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+ELINK_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
 TOOL_NAME = "biomedical-literature-assistant"
 BATCH_SIZE = 200
 """NCBI's recommended ceiling for IDs per efetch request."""
+NEIGHBOR_BATCH_SIZE = 100
+"""IDs per elink request. Each ID is sent as its own `id` parameter so NCBI
+returns one LinkSet per source paper rather than a merged list."""
 
 
 @dataclass(frozen=True)
@@ -120,6 +124,34 @@ def parse_pubmed_xml(
     return [papers[p] for p in wanted if p in papers], exclusions
 
 
+def parse_neighbors(xml: bytes) -> dict[str, list[tuple[str, int]]]:
+    """PubMed "similar articles" (elink pubmed_pubmed, neighbor_score) per source
+    PMID, highest score first. A source paper never lists itself.
+
+    Raises ValueError for an error document, which NCBI can return with
+    HTTP 200 and which must not read as "no neighbors".
+    """
+    root = ET.fromstring(xml)
+    if root.tag != "eLinkResult" or root.find("ERROR") is not None:
+        raise ValueError(f"unexpected elink document <{root.tag}>")
+    result: dict[str, list[tuple[str, int]]] = {}
+    for linkset in root.findall("LinkSet"):
+        source = _text(linkset.find("IdList/Id"))
+        if source is None:
+            continue
+        links = []
+        for db in linkset.findall("LinkSetDb"):
+            if _text(db.find("LinkName")) != "pubmed_pubmed":
+                continue
+            for link in db.findall("Link"):
+                pmid, score = _text(link.find("Id")), _text(link.find("Score"))
+                if pmid and score and pmid != source:
+                    links.append((pmid, int(score)))
+        links.sort(key=lambda item: (-item[1], item[0]))
+        result[source] = links
+    return result
+
+
 def _text(element: ET.Element | None) -> str | None:
     """All text inside an element, inline markup (<i>, <sup>) included."""
     if element is None:
@@ -195,23 +227,38 @@ class PubMedClient:
     def efetch(self, pmids: Sequence[str]) -> bytes:
         if not 1 <= len(pmids) <= BATCH_SIZE:
             raise ValueError(f"efetch takes 1-{BATCH_SIZE} PMIDs, got {len(pmids)}")
-        data = {**self._params, "id": ",".join(pmids)}
+        return self._post("efetch", EFETCH_URL, {**self._params, "id": ",".join(pmids)})
 
+    def neighbors(self, pmids: Sequence[str]) -> bytes:
+        """Raw elink XML for PubMed's similar-articles links of each PMID."""
+        if not 1 <= len(pmids) <= NEIGHBOR_BATCH_SIZE:
+            raise ValueError(f"elink takes 1-{NEIGHBOR_BATCH_SIZE} PMIDs, got {len(pmids)}")
+        params = {k: v for k, v in self._params.items() if k != "retmode"}
+        data = {
+            **params,
+            "dbfrom": "pubmed",
+            "cmd": "neighbor_score",
+            "linkname": "pubmed_pubmed",
+            "id": list(pmids),
+        }
+        return self._post("elink", ELINK_URL, data)
+
+    def _post(self, name: str, url: str, data: dict) -> bytes:
         for attempt in range(1, self._max_attempts + 1):
             self._wait_turn()
             try:
-                response = self._http.post(EFETCH_URL, data=data)
+                response = self._http.post(url, data=data)
             except httpx.TransportError as exc:
                 problem, delay = f"transport error: {exc.__class__.__name__}", None
             else:
                 if response.status_code == 200:
                     return response.content
                 if response.status_code != 429 and response.status_code < 500:
-                    raise FetchError(f"efetch rejected the request: HTTP {response.status_code}")
+                    raise FetchError(f"{name} rejected the request: HTTP {response.status_code}")
                 problem = f"HTTP {response.status_code}"
                 delay = _retry_after(response)
             if attempt == self._max_attempts:
-                raise FetchError(f"efetch failed after {attempt} attempts ({problem})")
+                raise FetchError(f"{name} failed after {attempt} attempts ({problem})")
             self._sleep(delay if delay is not None else 2 ** (attempt - 1))
         raise AssertionError("unreachable")
 

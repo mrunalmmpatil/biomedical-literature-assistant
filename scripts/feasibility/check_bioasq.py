@@ -94,8 +94,10 @@ def main() -> int:
     print()
 
     gate = counts["fully_eligible"] >= 100
-    print(f"  need >= 100 fully eligible; found {counts['fully_eligible']}  ->  "
-          f"{'PASS' if gate else 'FAIL (report the data limitation, do not invent labels)'}")
+    print(
+        f"  need >= 100 fully eligible; found {counts['fully_eligible']}  ->  "
+        f"{'PASS' if gate else 'FAIL (report the data limitation, do not invent labels)'}"
+    )
     return 0 if gate else 1
 
 

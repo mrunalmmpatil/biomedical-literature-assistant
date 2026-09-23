@@ -85,12 +85,15 @@ def report_free_models(c: httpx.Client, limit: int) -> list[str]:
     free = []
     for m in r.json().get("data", []):
         pricing = m.get("pricing") or {}
-        if str(pricing.get("prompt")) in ("0", "0.0") and str(pricing.get("completion")) in ("0", "0.0"):
+        if str(pricing.get("prompt")) in ("0", "0.0") and str(pricing.get("completion")) in (
+            "0",
+            "0.0",
+        ):
             free.append(m)
     free.sort(key=lambda m: -(m.get("context_length") or 0))
     print(f"== free models available: {len(free)} (showing {min(limit, len(free))}) ==")
     for m in free[:limit]:
-        params = (m.get("supported_parameters") or [])
+        params = m.get("supported_parameters") or []
         structured = "structured" if "response_format" in params else "-"
         print(f"  {m['id']:<55} ctx={m.get('context_length'):<9} {structured}")
     print()
@@ -114,7 +117,10 @@ def try_generate(c: httpx.Client, model: str) -> bool:
                     "'insufficient_evidence'."
                 ),
             },
-            {"role": "user", "content": f"Question: {SMOKE_QUESTION}\n\nSources:\n{SMOKE_EVIDENCE}"},
+            {
+                "role": "user",
+                "content": f"Question: {SMOKE_QUESTION}\n\nSources:\n{SMOKE_EVIDENCE}",
+            },
         ],
         "response_format": {
             "type": "json_schema",
