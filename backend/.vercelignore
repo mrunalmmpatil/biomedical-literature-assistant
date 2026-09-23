@@ -1,0 +1,12 @@
+# CLI deploys upload this directory directly and do not read the repository
+# root .gitignore. Secrets go in Vercel project environment variables instead.
+.env
+.env.*
+!.env.example
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+tests/
