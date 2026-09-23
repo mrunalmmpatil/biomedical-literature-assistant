@@ -1,6 +1,8 @@
 # Milestone 1 — Feasibility record
 
-Status: **in progress.** This file accumulates measured evidence for the
+Status: **gate met 2026-09-23.** Every Milestone 1 integration has `LIVE` or
+`LOCAL` evidence below; the one-time checks deferred to later milestones are
+listed where they apply. This file accumulates measured evidence for the
 Milestone 1 gate ("real integration evidence confirms that the proposed service
 combination works").
 
@@ -59,9 +61,39 @@ proposes two separate projects. One project would remove the cross-origin
 configuration described in technical PRD section 8.2. Worth a real comparison
 before Milestone 5; not yet decided.
 
-Still needs `LIVE` verification: cold-start behaviour, actual deployed bundle
-size with a BM25 artifact, environment-variable handling, and the frontend →
-backend round trip.
+### 2a. Vercel — `LIVE` 2026-09-23
+
+Two Hobby projects, deployed from the CLI (no Git connection yet).
+
+| Project | Production URL | Root |
+|---|---|---|
+| `bla-backend` | https://bla-backend.vercel.app | `backend/` |
+| `bla-frontend` | https://bla-frontend-gilt.vercel.app | `frontend/` |
+
+| Check | Result |
+|---|---|
+| Backend build | Python 3.12 from `.python-version`, uv installs from `uv.lock`; 5s |
+| `GET /api/health` | HTTP 200, ~0.3–0.4s; both providers report configured from Vercel env vars |
+| Frontend build | Next.js 16.3.6; `/` static; backend URL baked in at build time |
+| CORS | Frontend origin and `localhost:3000` allowed, including on preflight; other origins get no allow header |
+| Deployed frontend in headless Chrome | **Reachable**, correct values rendered |
+
+Findings:
+
+- **A CLI-created project has no framework preset**, and the first deploy
+  built nothing (404). Both `vercel.json` files now set `framework`.
+- **Hobby blocks deploys whose commit author is not the account owner**
+  (`TEAM_ACCESS_REQUIRED`), even for CLI deploys from a git working tree. The
+  repository's local `user.email` is set to the Vercel account's email.
+- `*.vercel.app` names are global: `bla-frontend.vercel.app` belongs to an
+  unrelated site, so the frontend is served at `bla-frontend-gilt`.
+- Deployment Protection is on for everything except production domains, so
+  per-deployment and preview URLs redirect to a Vercel login. That matters if
+  Git-connected previews are added later.
+- `NEXT_PUBLIC_API_BASE_URL` is fixed at build time: changing the backend URL
+  requires a frontend redeploy. `ALLOWED_ORIGINS` must list the frontend URL.
+- Deferred: cold-start behaviour under real traffic, and bundle size once a
+  BM25 artifact ships (Milestone 3).
 
 ## 3. Pinecone — `DOC` 2026-09-18
 
