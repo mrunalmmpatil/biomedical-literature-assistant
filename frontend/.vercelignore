@@ -1,0 +1,8 @@
+# CLI deploys upload this directory directly. The backend URL comes from the
+# Vercel project environment, not from a local .env file.
+.env
+.env.*
+!.env.local.example
+.next/
+node_modules/
+*.tsbuildinfo
