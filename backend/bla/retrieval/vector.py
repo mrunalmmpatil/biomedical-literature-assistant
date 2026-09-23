@@ -11,21 +11,19 @@ account with pinecone 10.0.0 on 2026-09-23. Search hits are `Hit` objects:
 read `.score` and `.fields`; `hit["_score"]` raises KeyError in this SDK.
 """
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any, Protocol
 
 from bla.contracts import Paper, RetrievalHit, RetrievalMethod
-from bla.corpus import searchable_text
 from bla.retrieval import MAX_DEPTH, check_depth
+from bla.units import MAX_UNIT_CHARS, units
 
 UPSERT_BATCH = 96
 """Pinecone's per-request record limit for integrated-embedding upserts (DOC)."""
 
-MAX_EMBED_CHARS = 6000
-"""Conservative guard for the model's 2,048-token input limit (DOC), assuming
-roughly 3 characters per token in dense biomedical text. Longer records are
-refused rather than silently truncated; passage splitting for them is a
-Milestone 2 decision made against measured lengths."""
+MAX_EMBED_CHARS = MAX_UNIT_CHARS
+"""Kept as an alias: the unit policy (bla/units.py) guarantees every record
+fits, so nothing reaches Pinecone's silent truncation."""
 
 
 class SearchableIndex(Protocol):
@@ -52,47 +50,45 @@ class PineconeRetriever:
             query={"inputs": {"text": query}, "top_k": min(k * 3, MAX_DEPTH * 3)},
             fields=["pmid"],
         )
-        best: dict[str, float] = {}
+        best: dict[str, tuple[float, str]] = {}
         for hit in response["result"]["hits"]:
             pmid = hit.fields["pmid"]
             score = float(hit.score)
             # A paper scores as its best passage (section 5's initial rule).
-            if pmid not in best or score > best[pmid]:
-                best[pmid] = score
-        ranked = sorted(best.items(), key=lambda item: (-item[1], item[0]))[:k]
+            if pmid not in best or score > best[pmid][0]:
+                best[pmid] = (score, hit.id)
+        ranked = sorted(best.items(), key=lambda item: (-item[1][0], item[0]))[:k]
         return [
-            RetrievalHit(pmid=pmid, rank=rank, score=score, method=self.method)
-            for rank, (pmid, score) in enumerate(ranked, start=1)
+            RetrievalHit(pmid=pmid, rank=rank, score=score, method=self.method, unit_id=unit_id)
+            for rank, (pmid, (score, unit_id)) in enumerate(ranked, start=1)
         ]
 
 
-def to_record(paper: Paper) -> dict[str, str]:
-    """One record per paper for now; passage IDs would be `<pmid>#<n>`."""
-    return {
-        "_id": paper.pmid,
-        "pmid": paper.pmid,
-        "text": searchable_text(paper.title, paper.abstract),
-    }
+def to_records(paper: Paper) -> list[dict[str, str]]:
+    """One record per searchable unit; IDs are unit IDs (bla/units.py)."""
+    return [{"_id": u.id, "pmid": u.pmid, "text": u.text} for u in units(paper)]
 
 
 def upsert_papers(
-    index: SearchableIndex, namespace: str, papers: Iterable[Paper]
-) -> tuple[int, list[str]]:
-    """Upsert in batches; IDs are PMIDs, so re-running is idempotent.
-
-    Returns (records upserted, PMIDs refused as too long to embed whole).
-    """
-    records: list[dict[str, str]] = []
-    refused: list[str] = []
-    for paper in papers:
-        record = to_record(paper)
-        if len(record["text"]) > MAX_EMBED_CHARS:
-            refused.append(paper.pmid)
-        else:
-            records.append(record)
+    index: SearchableIndex,
+    namespace: str,
+    papers: Iterable[Paper],
+    on_batch: Callable[[int], None] | None = None,
+) -> int:
+    """Upsert every unit in batches. IDs are deterministic, so re-running is
+    idempotent. `on_batch` receives the running record count after each batch.
+    Returns the number of records upserted."""
+    records = [record for paper in papers for record in to_records(paper)]
+    oversized = [r["_id"] for r in records if len(r["text"]) > MAX_EMBED_CHARS]
+    if oversized:
+        raise AssertionError(f"unit policy produced oversized records: {oversized[:5]}")
+    done = 0
     for batch in _chunks(records, UPSERT_BATCH):
         index.upsert_records(namespace=namespace, records=list(batch))
-    return len(records), refused
+        done += len(batch)
+        if on_batch:
+            on_batch(done)
+    return done
 
 
 def _chunks(items: Sequence, size: int) -> Iterable[Sequence]:

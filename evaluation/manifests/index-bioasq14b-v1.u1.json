@@ -1,0 +1,37 @@
+{
+  "index": "bla-collection",
+  "namespace": "bioasq14b-v1.u1",
+  "model": "llama-text-embed-v2",
+  "dimension": 1024,
+  "metric": "cosine",
+  "unit_policy_version": "1",
+  "corpus": "bioasq14b-v1",
+  "papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+  "papers": 3653,
+  "records": 3679,
+  "record_ids_sha256": "5724aa964db2d5424219477e5d7c92f9d3395b0936f00a5fcf4467ddc0a75fe0",
+  "embedded_this_run": 2911,
+  "sanity_queries": [
+    {
+      "pmid": "32201576",
+      "rank_in_top3": 1
+    },
+    {
+      "pmid": "19701612",
+      "rank_in_top3": 1
+    },
+    {
+      "pmid": "25632131",
+      "rank_in_top3": 1
+    },
+    {
+      "pmid": "17005986",
+      "rank_in_top3": 1
+    },
+    {
+      "pmid": "36230843",
+      "rank_in_top3": 1
+    }
+  ],
+  "published_on": "2026-09-23"
+}

@@ -3,13 +3,16 @@
 Answers focused biomedical questions from a controlled collection of published
 titles and abstracts, with citations and inspectable source text.
 
-**Status: Milestone 2 built; Milestone 3 (retrieval comparison) next.**
+**Status: Milestone 3 complete; Milestone 4 (answer generation) next.**
 
 - Milestone 1: every service was verified against a real account, and both
   apps are deployed ([feasibility report](docs/feasibility-report.md)):
   https://bla-frontend-gilt.vercel.app → https://bla-backend.vercel.app/api/health
 - Milestone 2: 100 BioASQ questions (25 fact + 25 list per split) and a
   frozen 3,653-paper collection ([data protocol](docs/data-protocol.md)).
+- Milestone 3: BM25 and Pinecone vector retrieval over the same units; on
+  the development split they are statistically indistinguishable (Recall@10
+  0.64 vs 0.65) ([retrieval report](docs/retrieval-development.md)).
 
 Answer generation and the question-and-answer interface do not exist yet.
 
@@ -23,6 +26,7 @@ Answer generation and the question-and-answer interface do not exist yet.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Plain-language walkthrough with diagrams |
 | [`docs/feasibility-report.md`](docs/feasibility-report.md) | Measured provider limits and integration evidence |
 | [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, collection, and budget |
+| [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector retrieval on the development split |
 
 ## Layout
 
@@ -32,7 +36,11 @@ frontend/             Next.js interface
 scripts/feasibility/  Milestone 1 provider probes
 scripts/benchmark/    Milestone 2 benchmark and collection builder
 scripts/corpus/       Ad-hoc PubMed snapshot fetcher
-evaluation/manifests/ Tracked benchmark manifests (IDs and hashes; no answers)
+scripts/indexing/     Pinecone collection loader (resumable, rate-paced)
+scripts/evaluation/   Retrieval evaluation and paired analysis (development only)
+evaluation/manifests/ Tracked benchmark and index manifests (IDs and hashes; no answers)
+evaluation/configs/   Frozen configurations
+evaluation/results/   Tracked aggregate results; per-question runs stay in evaluation/runs/
 docs/                 Setup, data protocol, evaluation reports
 ```
 
@@ -95,6 +103,15 @@ rebuilds `bioasq14b-v1` reproducibly from saved PubMed responses:
 ```bash
 cd backend
 uv run python ../scripts/benchmark/build_benchmark.py ../data/bioasq/training14b.json
+```
+
+## Retrieval evaluation
+
+```bash
+cd backend
+uv run --env-file .env python ../scripts/indexing/build_index.py bioasq14b-v1   # once per collection version
+uv run --env-file .env python ../scripts/evaluation/run_retrieval.py         # development split only
+uv run --env-file .env python ../scripts/evaluation/analyze_retrieval.py <run_id>
 ```
 
 ## Constraints worth knowing

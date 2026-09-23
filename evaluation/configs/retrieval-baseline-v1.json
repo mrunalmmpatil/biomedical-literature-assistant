@@ -1,0 +1,22 @@
+{
+  "name": "retrieval-baseline-v1",
+  "frozen_on": "2026-09-23",
+  "basis": "development split only (evaluation/results/retrieval-development-20260923T234633Z.json)",
+  "collection": {
+    "corpus": "bioasq14b-v1",
+    "papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+    "pinecone_index": "bla-collection",
+    "pinecone_namespace": "bioasq14b-v1.u1",
+    "embedding": {"model": "llama-text-embed-v2", "dimension": 1024, "metric": "cosine"},
+    "unit_policy_version": "1"
+  },
+  "retrieval": {
+    "depth": 10,
+    "query_input": "question text only",
+    "paper_aggregation": "best unit score",
+    "bm25": {"k1": 1.5, "b": 0.75, "tokenizer_version": "1"},
+    "vector": {"top_k_requested": 30}
+  },
+  "methods_retained": ["bm25", "vector"],
+  "not_tuned": "No BM25 parameter, tokenizer, or depth change was made after seeing development results. Any change creates retrieval-baseline-v2 with its own development run."
+}
