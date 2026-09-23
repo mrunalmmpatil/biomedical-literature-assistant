@@ -3,12 +3,15 @@
 Answers focused biomedical questions from a controlled collection of published
 titles and abstracts, with citations and inspectable source text.
 
-**Status: Milestone 1 — proving service compatibility.** Provider-independent
-core is in place and tested: data contracts, PubMed collection (verified live),
-the BM25 baseline, the Pinecone retriever (not yet run against a real index),
-answer/citation validation, and signed clarification tokens. No corpus or
-answer generation exists yet. See [`docs/feasibility-report.md`](docs/feasibility-report.md)
-for what has actually been verified, and against what evidence.
+**Status: Milestone 2 built; Milestone 3 (retrieval comparison) next.**
+
+- Milestone 1: every service was verified against a real account, and both
+  apps are deployed ([feasibility report](docs/feasibility-report.md)):
+  https://bla-frontend-gilt.vercel.app → https://bla-backend.vercel.app/api/health
+- Milestone 2: 100 BioASQ questions (25 fact + 25 list per split) and a
+  frozen 3,653-paper collection ([data protocol](docs/data-protocol.md)).
+
+Answer generation and the question-and-answer interface do not exist yet.
 
 ## Documents
 
@@ -19,6 +22,7 @@ for what has actually been verified, and against what evidence.
 | [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Milestones and completion gates |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Plain-language walkthrough with diagrams |
 | [`docs/feasibility-report.md`](docs/feasibility-report.md) | Measured provider limits and integration evidence |
+| [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, collection, and budget |
 
 ## Layout
 
@@ -26,7 +30,9 @@ for what has actually been verified, and against what evidence.
 backend/              FastAPI service (Vercel entrypoint: app.py)
 frontend/             Next.js interface
 scripts/feasibility/  Milestone 1 provider probes
-evaluation/           Evaluation definitions and permitted artifacts
+scripts/benchmark/    Milestone 2 benchmark and collection builder
+scripts/corpus/       Ad-hoc PubMed snapshot fetcher
+evaluation/manifests/ Tracked benchmark manifests (IDs and hashes; no answers)
 docs/                 Setup, data protocol, evaluation reports
 ```
 
@@ -79,6 +85,16 @@ raises the rate limit). Writes a resumable snapshot under `data/corpus/<name>/`.
 ```bash
 cd backend
 uv run python ../scripts/corpus/fetch_pubmed.py pmids.txt --name <snapshot-name>
+```
+
+## Benchmark and collection
+
+Needs `data/bioasq/training14b.json` (BioASQ registration required). This
+rebuilds `bioasq14b-v1` reproducibly from saved PubMed responses:
+
+```bash
+cd backend
+uv run python ../scripts/benchmark/build_benchmark.py ../data/bioasq/training14b.json
 ```
 
 ## Constraints worth knowing

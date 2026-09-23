@@ -7,7 +7,14 @@ import httpx
 import pytest
 
 from bla.contracts import SourceStatus
-from bla.ingest.pubmed import BATCH_SIZE, FetchError, PubMedClient, batches, parse_pubmed_xml
+from bla.ingest.pubmed import (
+    BATCH_SIZE,
+    FetchError,
+    PubMedClient,
+    batches,
+    parse_neighbors,
+    parse_pubmed_xml,
+)
 
 TODAY = date(2026, 9, 23)
 
@@ -279,3 +286,46 @@ def test_batch_size_is_bounded(count):
     client, _, _ = client_with([])
     with pytest.raises(ValueError):
         client.efetch([str(i + 1) for i in range(count)])
+
+
+# --- Similar articles (elink) ------------------------------------------------
+
+
+def elink(*linksets):
+    return ("<eLinkResult>" + "".join(linksets) + "</eLinkResult>").encode()
+
+
+def linkset(source, *links, name="pubmed_pubmed"):
+    body = "".join(f"<Link><Id>{p}</Id><Score>{s}</Score></Link>" for p, s in links)
+    return (
+        f"<LinkSet><DbFrom>pubmed</DbFrom><IdList><Id>{source}</Id></IdList>"
+        f"<LinkSetDb><DbTo>pubmed</DbTo><LinkName>{name}</LinkName>{body}</LinkSetDb></LinkSet>"
+    )
+
+
+def test_neighbors_are_ranked_by_score_and_exclude_the_source():
+    xml = elink(linkset("1", ("5", 10), ("1", 99), ("4", 30)), linkset("2", ("7", 1)))
+    assert parse_neighbors(xml) == {"1": [("4", 30), ("5", 10)], "2": [("7", 1)]}
+
+
+def test_other_link_names_are_ignored():
+    xml = elink(linkset("1", ("5", 10), name="pubmed_pubmed_citedin"))
+    assert parse_neighbors(xml) == {"1": []}
+
+
+def test_elink_error_document_is_not_an_empty_result():
+    with pytest.raises(ValueError):
+        parse_neighbors(b"<eLinkResult><ERROR>bad</ERROR></eLinkResult>")
+
+
+def test_neighbors_sends_one_id_parameter_per_pmid():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = request.content.decode()
+        return httpx.Response(200, content=elink())
+
+    client = PubMedClient(http=httpx.Client(transport=httpx.MockTransport(handler)))
+    client.neighbors(["1", "2"])
+    assert "id=1&id=2" in seen["body"]
+    assert "cmd=neighbor_score" in seen["body"]

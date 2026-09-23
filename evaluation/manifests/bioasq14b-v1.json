@@ -1,0 +1,197 @@
+{
+  "name": "bioasq14b-v1",
+  "rules_version": "1",
+  "dataset": {
+    "source": "BioASQ Task B training 14b (participants-area.bioasq.org)",
+    "file": "training14b.json",
+    "sha256": "5669afbc0bbc8f50d54850edb4aa592ecff3e38b29b09ac6684bb52990b651b7",
+    "records": 5729,
+    "terms": "Registration required; NLM terms apply. Not redistributed.",
+    "type_mapping": {
+      "factoid": "fact",
+      "list": "list"
+    }
+  },
+  "procedure": {
+    "seed": 20260923,
+    "per_type": 50,
+    "grouping": {
+      "text_similar": 0.5,
+      "docs_similar": 0.3,
+      "docs_same_source": 0.6
+    },
+    "prefix_groups_fetched": 300,
+    "neighbors_per_reference": 3
+  },
+  "eligibility": {
+    "structurally_eligible": 2658,
+    "ineligible": {
+      "out_of_scope_type": 2904,
+      "full_text_snippet": 147,
+      "unparseable_document_url": 10,
+      "malformed_snippet": 7,
+      "malformed_exact_answer": 3
+    },
+    "groups": 2593,
+    "multi_member_groups": 53,
+    "groups_examined": 123,
+    "rejected_for_evidence": {
+      "no_snippet_found_in_source_text": 1
+    }
+  },
+  "selection": {
+    "distribution": {
+      "development/fact": 25,
+      "development/list": 25,
+      "test/fact": 25,
+      "test/list": 25
+    },
+    "questions": {
+      "development": [
+        "52ea605098d0239505000028",
+        "52fb42752059c6d71c00005e",
+        "533ba218fd9a95ea0d000007",
+        "533ba85ffd9a95ea0d000008",
+        "534e364e288f4dae47000001",
+        "54cb9c94f693c3b16b000005",
+        "54db62a3034aea571d000001",
+        "54e1252fae9738404b000003",
+        "54f9b74306d9727f76000004",
+        "54fc91e96ad7dcbc12000001",
+        "5506e2ff8e1671127b00000d",
+        "5506eca18e1671127b00000f",
+        "56a24dfffe92d6fd19000002",
+        "56b773a96e3f8eaf4c000003",
+        "56c04412ef6e39474100001b",
+        "56cf4b623975bb303a00000a",
+        "5883a727e56acf5176000001",
+        "58a8071760087bc10a000037",
+        "58a80bc838c171fb5b000001",
+        "58add7699ef3c34033000009",
+        "5a68ff52b750ff445500001c",
+        "5a760e5583b0d9ea66000018",
+        "5c2cf051133db5eb78000030",
+        "5c51fb7a07ef653866000006",
+        "5c54224807647bbc4b000001",
+        "5c56bbb107647bbc4b000011",
+        "5c641179e842deac67000012",
+        "5c93e5acecadf2e73f00001a",
+        "5d387c20a1e1595105000010",
+        "5e2902688b3851296d000005",
+        "5e360f3d158f994d3a000009",
+        "5e4bf9436d0a27794100002d",
+        "5e639a0a1af46fc130000010",
+        "601d6ec61cb411341a000032",
+        "6025e3a71cb411341a0000bc",
+        "60281eb11cb411341a0000f5",
+        "6057238394d57fd879000029",
+        "606b30e094d57fd87900005f",
+        "61f5f1ef882a024a10000015",
+        "62265c953a8413c653000084",
+        "6428da74690f196b51000052",
+        "6431708a57b1c7a315000017",
+        "6446caac57b1c7a315000074",
+        "644e81fa57b1c7a315000079",
+        "65f847c5c4010b4d78000046",
+        "66099926fdcbea915f000016",
+        "661d9e79fe9d0b3967000001",
+        "67d430f918b1e36f2e00000f",
+        "67eb817c18b1e36f2e0000f0",
+        "67fa3c5818b1e36f2e000109"
+      ],
+      "test": [
+        "52bf19f703868f1b06000002",
+        "52f899952059c6d71c00004b",
+        "531376c8e3eabad021000012",
+        "531464a6e3eabad021000014",
+        "5322d3cb9b2d7acc7e000010",
+        "535d59349a4572de6f000009",
+        "54e0e902ae9738404b000001",
+        "54f60ae05f206a0c06000008",
+        "56ae6e650a360a5e4500000e",
+        "56c703445795f9a73e00000a",
+        "56ddbbaf51531f7e33000009",
+        "56f24fec2ac5ed1459000015",
+        "5880b2a6c872c95565000004",
+        "588f9950ed9bbee70d000002",
+        "5895e9977d9090f353000013",
+        "589a247078275d0c4a000035",
+        "58a5b1fe60087bc10a000024",
+        "58bac71222d3005309000013",
+        "58cd90c202b8c60953000040",
+        "58cdb41302b8c60953000042",
+        "5a6e3155b750ff445500003f",
+        "5c544c1707647bbc4b000003",
+        "5c62a276e842deac6700000a",
+        "5c6c46677c78d69471000035",
+        "5c8c095e0101eac870000002",
+        "5c900b9eecadf2e73f000004",
+        "5ca61f17ecadf2e73f000050",
+        "5e30f12afbd6abf43b000041",
+        "5e4be9496d0a27794100002a",
+        "5e4bed1c6d0a27794100002b",
+        "5e52be146d0a27794100004a",
+        "5e639b111af46fc130000012",
+        "5e7f5d83835f4e4777000017",
+        "5e92021a2d3121100d000005",
+        "5eb422150d431b5f73000009",
+        "601ebba41cb411341a00005a",
+        "601f19d11cb411341a000073",
+        "601ff4a61cb411341a000076",
+        "604b8cf71cb411341a000171",
+        "6060838e94d57fd879000042",
+        "606a23c694d57fd87900004d",
+        "62121a463a8413c653000015",
+        "622ba6673a8413c653000098",
+        "63eeefc5f36125a426000009",
+        "63f581e933942b094c000007",
+        "6411b678201352f04a000036",
+        "64179139690f196b5100002f",
+        "6431f7de57b1c7a31500001b",
+        "67e40a2418b1e36f2e0000a1",
+        "67ed634018b1e36f2e0000fa"
+      ]
+    },
+    "reference_pmids_shared_across_splits": 0
+  },
+  "collection": {
+    "papers": 3653,
+    "papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+    "reference_pmids": 1079,
+    "related_pmids_requested": 2616,
+    "exclusions": {
+      "retracted": 6,
+      "not_returned": 1,
+      "no_abstract": 35
+    },
+    "source_status": {
+      "none_reported": 3577,
+      "corrected": 75,
+      "expression_of_concern": 1
+    },
+    "retrieved_on": [
+      "2026-09-23"
+    ],
+    "searchable_chars": {
+      "min": 224,
+      "p50": 1671,
+      "p95": 2850,
+      "max": 48093
+    },
+    "over_embed_limit": 15,
+    "reference_coverage": {
+      "questions_fully_covered": 96,
+      "reference_pmids_missing": 4,
+      "missing_by_reason": {
+        "retracted": 2,
+        "not_returned": 1,
+        "no_abstract": 1
+      }
+    },
+    "estimated_embedding_tokens": {
+      "at_4_chars_per_token": 1595807,
+      "at_3_chars_per_token": 2127743,
+      "monthly_allowance": 5000000
+    }
+  }
+}
