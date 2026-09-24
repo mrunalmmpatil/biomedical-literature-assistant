@@ -22,7 +22,7 @@ titles and abstracts, with citations and inspectable source text.
   outcome cases pass. Development: 39 of 50 answered, fact accuracy 0.44 and
   list F1 0.27–0.37 over all attempted questions, and 90% of claims supported
   by their quotes ([answering report](docs/answering-development.md)).
-- Milestone 5: the public question page with shared request limits (5 per
+- Milestone 5: the public question page with shared request limits (20 per
   visitor per hour; a site-wide daily cap), tested in a real browser
   ([web demo](docs/web-demo.md)).
 

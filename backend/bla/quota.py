@@ -28,7 +28,7 @@ from datetime import UTC, datetime
 
 import httpx
 
-CLIENT_LIMIT = 5
+CLIENT_LIMIT = 20
 CLIENT_WINDOW_SECONDS = 3600
 DAILY_ATTEMPT_CEILING = 300
 """Public share of the 1,000/day free allowance (feasibility report 4a)."""
