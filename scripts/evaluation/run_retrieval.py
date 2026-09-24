@@ -38,6 +38,7 @@ from bla.benchmark.bioasq import BenchmarkQuestion
 from bla.benchmark.metrics import mean, score
 from bla.ingest.snapshot import read_papers, sha256
 from bla.retrieval.bm25 import BM25Retriever
+from bla.retrieval.hybrid import HybridRetriever
 from bla.retrieval.tokenize import TOKENIZER_VERSION
 from bla.retrieval.vector import PineconeRetriever
 from bla.units import UNIT_POLICY_VERSION
@@ -81,6 +82,11 @@ def main() -> int:
         choices=["development"],
         help="only the development split; the test split is Milestone 6",
     )
+    p.add_argument(
+        "--hybrid",
+        action="store_true",
+        help="also run retrieval-hybrid-v2 (reciprocal rank fusion of both)",
+    )
     args = p.parse_args()
 
     bench_path = REPO / "data" / "benchmark" / args.benchmark / "questions.jsonl"
@@ -108,10 +114,10 @@ def main() -> int:
     bm25 = BM25Retriever(papers)
     bm25_build_s = time.monotonic() - started
     index = Pinecone(api_key=os.environ["PINECONE_API_KEY"]).Index(index_manifest["index"])
-    retrievers = {
-        "bm25": bm25,
-        "vector": PineconeRetriever(index, index_manifest["namespace"]),
-    }
+    vector = PineconeRetriever(index, index_manifest["namespace"])
+    retrievers = {"bm25": bm25, "vector": vector}
+    if args.hybrid:
+        retrievers["hybrid"] = HybridRetriever({"bm25": bm25, "vector": vector})
 
     run_id = f"retrieval-{args.split}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     rows = []
@@ -172,6 +178,17 @@ def main() -> int:
             "unit_policy_version": UNIT_POLICY_VERSION,
             "paper_aggregation": "best unit score",
             "vector_top_k_requested": DEPTH * 3,
+            **(
+                {
+                    "hybrid": {
+                        "config": "evaluation/configs/retrieval-hybrid-v2.json",
+                        "rrf_k": retrievers["hybrid"].rrf_k,
+                        "candidate_depth_per_method": retrievers["hybrid"].candidate_depth,
+                    }
+                }
+                if "hybrid" in retrievers
+                else {}
+            ),
         },
         "dependencies": {pkg: version(pkg) for pkg in ("pinecone", "pydantic", "httpx")},
         "bm25_build_seconds": round(bm25_build_s, 2),

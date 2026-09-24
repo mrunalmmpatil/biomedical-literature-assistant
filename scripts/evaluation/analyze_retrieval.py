@@ -3,6 +3,8 @@
     cd backend
     uv run --env-file .env python ../scripts/evaluation/analyze_retrieval.py <run_id>
 
+Compares every method in the run against every other (paired, "a - b").
+
 Adds what the headline means cannot show on 50 questions:
 
 - per-question wins, ties, and losses between the methods;
@@ -33,6 +35,7 @@ from bla.benchmark.bioasq import BenchmarkQuestion
 from bla.ingest.snapshot import read_papers
 from bla.retrieval import MAX_DEPTH
 from bla.retrieval.bm25 import BM25Retriever
+from bla.retrieval.hybrid import HybridRetriever
 from bla.retrieval.vector import PineconeRetriever
 
 METRICS = ("recall_at_5", "recall_at_10", "reciprocal_rank_at_10")
@@ -56,27 +59,30 @@ def main() -> int:
         .read_text()
         .splitlines()
     ]
-    rows = [r for r in rows if r["bm25"]["score"] and r["vector"]["score"]]
+    methods = [m for m in ("bm25", "vector", "hybrid") if m in rows[0]]
+    rows = [r for r in rows if all(r[m]["score"] for m in methods)]
 
+    # Pairs ordered so the later (newer) method is "a": vector - bm25,
+    # hybrid - bm25, hybrid - vector.
     paired = {}
-    for metric in METRICS:
-        diffs = [r["vector"]["score"][metric] - r["bm25"]["score"][metric] for r in rows]
-        wins = collections.Counter(
-            "vector" if d > 1e-12 else "bm25" if d < -1e-12 else "tie" for d in diffs
-        )
-        low, high = bootstrap_ci(diffs)
-        paired[metric] = {
-            "mean_difference_vector_minus_bm25": sum(diffs) / len(diffs),
-            "bootstrap_95ci": [low, high],
-            "questions_better": {
-                "vector": wins["vector"],
-                "bm25": wins["bm25"],
-                "tie": wins["tie"],
-            },
-        }
+    for i, b in enumerate(methods):
+        for a in methods[i + 1 :]:
+            comparison = {}
+            for metric in METRICS:
+                diffs = [r[a]["score"][metric] - r[b]["score"][metric] for r in rows]
+                wins = collections.Counter(
+                    a if d > 1e-12 else b if d < -1e-12 else "tie" for d in diffs
+                )
+                low, high = bootstrap_ci(diffs)
+                comparison[metric] = {
+                    "mean_difference": sum(diffs) / len(diffs),
+                    "bootstrap_95ci": [low, high],
+                    "questions_better": {a: wins[a], b: wins[b], "tie": wins["tie"]},
+                }
+            paired[f"{a}_minus_{b}"] = comparison
 
     ceiling = {}
-    for method in ("bm25", "vector"):
+    for method in methods:
         fractions = []
         for r in rows:
             relevant = len(r["relevant_in_collection"])
@@ -100,13 +106,14 @@ def main() -> int:
         questions[record["id"]] = BenchmarkQuestion.model_validate(record)
     papers = read_papers(REPO / "data" / "corpus" / result["benchmark"]["name"] / "papers.jsonl")
     index_info = result["collection"]["index"]
-    retrievers = {
-        "bm25": BM25Retriever(papers),
-        "vector": PineconeRetriever(
-            Pinecone(api_key=os.environ["PINECONE_API_KEY"]).Index(index_info["index"]),
-            index_info["namespace"],
-        ),
-    }
+    bm25 = BM25Retriever(papers)
+    vector = PineconeRetriever(
+        Pinecone(api_key=os.environ["PINECONE_API_KEY"]).Index(index_info["index"]),
+        index_info["namespace"],
+    )
+    retrievers = {"bm25": bm25, "vector": vector}
+    if "hybrid" in methods:
+        retrievers["hybrid"] = HybridRetriever({"bm25": bm25, "vector": vector})
     depth = {}
     for method, retriever in retrievers.items():
         buckets = collections.Counter()
