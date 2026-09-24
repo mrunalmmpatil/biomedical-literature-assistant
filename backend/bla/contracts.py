@@ -31,6 +31,7 @@ class Outcome(StrEnum):
 class RetrievalMethod(StrEnum):
     BM25 = "bm25"
     VECTOR = "vector"
+    HYBRID = "hybrid"
 
 
 class SourceStatus(StrEnum):
