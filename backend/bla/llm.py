@@ -111,31 +111,40 @@ class OpenRouter:
             # from the response rather than filtered afterwards.
             "reasoning": {"exclude": True},
         }
+        limit = min(self._timeout, timeout) if timeout else self._timeout
         started = self._clock()
         try:
-            response = self._http.post(
-                "/chat/completions",
-                json=payload,
-                headers=self._headers,
-                timeout=min(self._timeout, timeout) if timeout else self._timeout,
-            )
+            status, raw = self._post_within(payload, limit, started)
         except httpx.TimeoutException as exc:
             raise ProviderTimeout("provider request timed out") from exc
         except httpx.TransportError as exc:
             raise ProviderUnavailable(f"transport error: {exc.__class__.__name__}") from exc
         latency = (self._clock() - started) * 1000
 
-        _raise_for_status(response)
         try:
-            body = response.json()
+            body = json.loads(raw)
         except ValueError as exc:
+            if status != 200:
+                raise _from_error_body({"code": status}) from exc
             raise ProviderUnavailable("provider returned a non-JSON body") from exc
+        if status != 200:
+            error = body.get("error", {}) if isinstance(body, dict) else {}
+            raise _from_error_body({**error, "code": error.get("code", status)})
         if "error" in body:  # OpenRouter can report upstream failures inside a 200
             raise _from_error_body(body["error"])
         try:
-            text = body["choices"][0]["message"]["content"]
+            choice = body["choices"][0]
+            text = choice["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise MalformedOutput("response had no message") from exc
+        if not isinstance(text, str) or not text.strip():
+            # Seen in development: null content, e.g. when a reasoning model
+            # spends its output budget before answering.
+            reason = choice.get("finish_reason") if isinstance(choice, dict) else None
+            raise MalformedOutput(f"empty response content (finish_reason={reason})")
+        try:
             content = json.loads(_strip_fence(text))
-        except (KeyError, IndexError, TypeError, ValueError) as exc:
+        except ValueError as exc:
             raise MalformedOutput("response content was not a JSON object") from exc
         if not isinstance(content, dict):
             raise MalformedOutput("response content was not a JSON object")
@@ -147,6 +156,43 @@ class OpenRouter:
             usage=body.get("usage"),
             latency_ms=round(latency, 1),
         )
+
+    def _post_within(self, payload: dict, limit: float, started: float) -> tuple[int, bytes]:
+        with self._http.stream(
+            "POST", "/chat/completions", json=payload, headers=self._headers, timeout=limit
+        ) as response:
+            return response.status_code, _read_within(response, limit, started, self._clock)
+
+
+@dataclass(frozen=True)
+class DailyAllowance:
+    """The account's free-model allowance as OpenRouter reports it (technical
+    PRD 8.1: the ceiling comes from the verified account, not documentation)."""
+
+    used: int
+    limit: int
+    remaining: int
+
+
+def daily_allowance(api_key: str, http: httpx.Client | None = None) -> DailyAllowance:
+    """Reads /key; spends no request against the allowance."""
+    client = http or httpx.Client(base_url=BASE_URL)
+    response = client.get("/key", headers={"Authorization": f"Bearer {api_key}"}, timeout=30)
+    _raise_for_status(response)
+    info = response.json()["data"]["free_model_daily_requests"]
+    return DailyAllowance(int(info["used"]), int(info["limit"]), int(info["remaining"]))
+
+
+def _read_within(response: httpx.Response, limit: float, started: float, clock) -> bytes:
+    """Read the body, enforcing a total wall-clock limit. httpx timeouts are
+    per read, and OpenRouter sends keep-alive whitespace while a model works,
+    so without this a request could run for minutes (seen in development)."""
+    chunks = []
+    for chunk in response.iter_bytes():
+        chunks.append(chunk)
+        if clock() - started > limit:
+            raise httpx.ReadTimeout("total request time exceeded")
+    return b"".join(chunks)
 
 
 def _strip_fence(text: str) -> str:

@@ -208,6 +208,10 @@ Option A is rejected; the project remains $0 and OpenRouter-only. The working
 assumption is therefore 50 requests/day until `check_openrouter.py` reports the
 account's actual allowance.
 
+**Update 2026-09-24:** the account reports 1,000 free-model requests per day
+(section 4a correction). Generation still uses free models only, so the
+project remains at $0; the higher allowance removes the multi-day constraint.
+
 Consequences to resolve before Milestone 4 (proposed, not yet agreed):
 
 - Evaluation runs are spread across days, and model responses are cached by
@@ -219,13 +223,25 @@ Consequences to resolve before Milestone 4 (proposed, not yet agreed):
 - Option C (one combined call) was declined on 2026-09-23. The two-call
   workflow in technical PRD 6.1–6.2 stands unchanged.
 
-### 4a. OpenRouter — `LIVE` 2026-09-23
+### 4a. OpenRouter — `LIVE` 2026-09-23 (allowance corrected 2026-09-24)
 
-No credits purchased. Two requests spent.
+Two requests spent on 2026-09-23.
+
+> **Correction, 2026-09-24.** The 2026-09-23 check below said the key
+> endpoint does not report the daily allowance. It does, in a field the probe
+> did not print: `free_model_daily_requests`. Read on 2026-09-24, the account
+> reports **limit 1,000/day** (31 used, 969 remaining), `is_free_tier: false`,
+> and **$10 of credits purchased** ($0.37 used across the account; **$0 by this
+> project's key**, which only calls free models). The account is on the
+> 1,000/day tier, not the documented 50/day tier that sections 4 and 4b
+> planned around. The project still spends $0: generation uses only the pinned
+> free model. `check_openrouter.py` now prints the field, and the evaluation
+> runners size their daily ceiling from it, keeping 100 requests in reserve
+> (technical PRD 8.1: the ceiling comes from the verified account).
 
 | Check | Result |
 |---|---|
-| Key endpoint | usage 0, no credit limit. **The daily allowance is not reported**, so the 50/day figure is still `DOC`, not measured. The deprecated `rate_limit` field says nothing usable. |
+| Key endpoint | usage 0, no credit limit. `free_model_daily_requests` reports the daily allowance; see the correction above. The deprecated `rate_limit` field says nothing usable. |
 | Free models listed | 24, of which 11 advertise `response_format` |
 | `google/gemma-4-31b-it:free` | **HTTP 429 from the upstream provider's shared pool** ("temporarily rate-limited upstream"). This is not the account's own quota. |
 | `nvidia/nemotron-3-super-120b-a12b:free` | HTTP 200; strict JSON schema honoured; returned model equals requested model; provider Nvidia; cost 0; 47 of 106 completion tokens were reasoning |

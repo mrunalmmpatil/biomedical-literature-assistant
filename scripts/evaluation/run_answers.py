@@ -37,11 +37,16 @@ from bla.answering.prompts import PROMPT_VERSION
 from bla.answering.service import AnswerService
 from bla.benchmark.answer_metrics import NORMALIZATION_VERSION, score_fact, score_list
 from bla.benchmark.bioasq import BenchmarkQuestion, QuestionType
-from bla.benchmark.llm_budget import CachingLLM, DailyBudgetReached, DailyLedger
+from bla.benchmark.llm_budget import (
+    CachingLLM,
+    DailyBudgetReached,
+    DailyLedger,
+    ceiling_from_allowance,
+)
 from bla.clarification import ClarificationSigner
 from bla.contracts import Outcome
 from bla.ingest.snapshot import read_papers, sha256
-from bla.llm import OpenRouter
+from bla.llm import OpenRouter, daily_allowance
 from bla.retrieval.bm25 import BM25Retriever
 
 LEDGER = REPO / "data" / "openrouter" / "ledger"
@@ -70,7 +75,13 @@ def main() -> int:
     questions = questions[: args.limit] if args.limit else questions
 
     papers = read_papers(papers_path)
+    allowance = daily_allowance(os.environ["OPENROUTER_API_KEY"])
     ledger = DailyLedger(LEDGER)
+    ledger.ceiling = ceiling_from_allowance(ledger.used(), allowance.remaining)
+    print(
+        f"== OpenRouter free-model allowance: {allowance.used}/{allowance.limit} used, "
+        f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
+    )
     llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"]), CACHE, ledger)
     service = AnswerService(
         BM25Retriever(papers),
@@ -88,6 +99,19 @@ def main() -> int:
         except DailyBudgetReached as exc:
             stopped = str(exc)
             break
+        except Exception as exc:  # noqa: BLE001 -- a bug, not an outcome: recorded, never hidden
+            rows.append(
+                {
+                    "id": q.id,
+                    "type": q.type.value,
+                    "outcome": "runner_error",
+                    "internal_reason": f"{exc.__class__.__name__}: {exc}"[:300],
+                    "attempts": [],
+                    "total_ms": 0.0,
+                }
+            )
+            print(f"  {q.id} {q.type.value:<4} RUNNER ERROR {exc.__class__.__name__}")
+            continue
         items = [i.text for i in response.answer.items] if response.answer else []
         row = {
             "id": q.id,
@@ -98,6 +122,9 @@ def main() -> int:
             "shown_pmids": [s.pmid for s in response.sources],
             "reference_pmids_shown": sorted({s.pmid for s in response.sources} & set(q.pmids)),
             "retrieved": diag.retrieval,
+            "response": response.model_dump(
+                mode="json", exclude={"sources": {"__all__": {"abstract"}}}
+            ),
             "attempts": diag.attempts,
             "assessment": diag.assessment,
             "internal_reason": diag.internal_reason,

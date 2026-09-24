@@ -104,3 +104,48 @@ def test_timeouts_are_typed():
 
     with pytest.raises(ProviderTimeout):
         call(client(handler))
+
+
+def test_daily_allowance_is_read_from_the_account():
+    from bla.llm import daily_allowance
+
+    body = {"data": {"free_model_daily_requests": {"used": 31, "limit": 1000, "remaining": 969}}}
+    http = httpx.Client(
+        base_url="https://openrouter.test",
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, json=body)),
+    )
+    allowance = daily_allowance("key", http=http)
+    assert (allowance.used, allowance.limit, allowance.remaining) == (31, 1000, 969)
+
+
+@pytest.mark.parametrize("content", [None, "   "])
+def test_empty_content_is_malformed_output_not_a_crash(content):
+    body = {"choices": [{"message": {"content": content}, "finish_reason": "length"}]}
+    c = client(lambda request: httpx.Response(200, json=body))
+    with pytest.raises(MalformedOutput, match="finish_reason=length"):
+        call(c)
+
+
+def test_missing_choices_is_malformed_output():
+    c = client(lambda request: httpx.Response(200, json={"choices": []}))
+    with pytest.raises(MalformedOutput):
+        call(c)
+
+
+def test_keepalive_bytes_cannot_extend_a_request_past_its_limit():
+    """OpenRouter trickles whitespace while a model works; each chunk resets
+    httpx's per-read timeout, so the total limit is enforced separately."""
+    ticks = iter(range(0, 1000, 10))  # every clock read advances 10s
+
+    class Trickle(httpx.SyncByteStream):
+        def __iter__(self):
+            for _ in range(100):
+                yield b" "
+
+    http = httpx.Client(
+        base_url="https://openrouter.test",
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, stream=Trickle())),
+    )
+    c = OpenRouter("key", http=http, timeout=45, clock=lambda: next(ticks))
+    with pytest.raises(ProviderTimeout):
+        call(c)

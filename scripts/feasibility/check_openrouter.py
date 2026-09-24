@@ -73,7 +73,7 @@ def report_key(c: httpx.Client) -> None:
     print(f"  usage:             {data.get('usage')}")
     print(f"  credit limit:      {data.get('limit')}")
     print(f"  limit remaining:   {data.get('limit_remaining')}")
-    print(f"  rate_limit:        {data.get('rate_limit')}")
+    print(f"  free model requests today: {data.get('free_model_daily_requests')}")
     print()
     print("  NOTE: a missing usage value is null, not zero (technical PRD 8.1).")
     print()

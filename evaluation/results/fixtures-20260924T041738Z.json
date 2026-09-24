@@ -1,0 +1,258 @@
+{
+  "run_id": "fixtures-20260924T041738Z",
+  "fixtures": "answer-cases-v1",
+  "model": "nvidia/nemotron-3-super-120b-a12b:free",
+  "prompt_version": "2",
+  "passed": 11,
+  "cases": 11,
+  "requests_dispatched": 22,
+  "requests_from_cache": 0,
+  "results": [
+    {
+      "id": "answerable-fact",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "zeta kinase"
+      ],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2475.1
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2401.3
+        }
+      ]
+    },
+    {
+      "id": "answerable-list",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "IL-6",
+        "TNF-alpha",
+        "IL-8"
+      ],
+      "qualifications": [
+        "IL-10 did not differ from healthy controls in the Varn cohort."
+      ],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2334.1
+        },
+        {
+          "stage": "generate",
+          "error": "ProviderTimeout",
+          "validation": null,
+          "latency_ms": null
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 10222.6
+        }
+      ]
+    },
+    {
+      "id": "no-evidence",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 4025.9
+        }
+      ]
+    },
+    {
+      "id": "wrong-evidence-memory-temptation",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 4087.6
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2749.0
+        }
+      ]
+    },
+    {
+      "id": "missing-detail-in-evidence",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1930.4
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1207.1
+        }
+      ]
+    },
+    {
+      "id": "ambiguous",
+      "passed": true,
+      "problems": [],
+      "outcome": "needs_clarification",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2133.2
+        }
+      ]
+    },
+    {
+      "id": "clarification-follow-up",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": "ProviderUnavailable",
+          "validation": null,
+          "latency_ms": null
+        },
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2443.0
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 3033.4
+        }
+      ]
+    },
+    {
+      "id": "personal-advice",
+      "passed": true,
+      "problems": [],
+      "outcome": "unsupported_request",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1504.6
+        }
+      ]
+    },
+    {
+      "id": "not-biomedical",
+      "passed": true,
+      "problems": [],
+      "outcome": "unsupported_request",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1555.6
+        }
+      ]
+    },
+    {
+      "id": "conflicting-findings",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 3310.1
+        },
+        {
+          "stage": "generate",
+          "error": "ProviderTimeout",
+          "validation": null,
+          "latency_ms": null
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 7949.6
+        }
+      ]
+    },
+    {
+      "id": "instruction-in-source",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "YR3"
+      ],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 3895.3
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 6513.1
+        }
+      ]
+    }
+  ]
+}

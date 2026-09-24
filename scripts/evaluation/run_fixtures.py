@@ -26,11 +26,11 @@ sys.path.insert(0, str(REPO / "backend"))
 
 from bla.answering.prompts import PROMPT_VERSION
 from bla.answering.service import MESSAGES, AnswerService
-from bla.benchmark.llm_budget import CachingLLM, DailyLedger
+from bla.benchmark.llm_budget import CachingLLM, DailyLedger, ceiling_from_allowance
 from bla.clarification import ClarificationSigner
 from bla.contracts import Outcome, Paper
 from bla.corpus import content_hash, normalize_text
-from bla.llm import OpenRouter
+from bla.llm import OpenRouter, daily_allowance
 from bla.retrieval.bm25 import BM25Retriever
 
 FIXTURES = REPO / "evaluation" / "fixtures" / "answer-cases-v1.json"
@@ -88,7 +88,13 @@ def check(expect: dict, response, diag) -> list[str]:
 def main() -> int:
     spec = json.loads(FIXTURES.read_text())
     papers = fixture_papers(spec)
+    allowance = daily_allowance(os.environ["OPENROUTER_API_KEY"])
     ledger = DailyLedger(LEDGER)
+    ledger.ceiling = ceiling_from_allowance(ledger.used(), allowance.remaining)
+    print(
+        f"== OpenRouter free-model allowance: {allowance.used}/{allowance.limit} used, "
+        f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
+    )
     llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"]), CACHE, ledger)
     service = AnswerService(
         BM25Retriever(papers),
