@@ -231,3 +231,12 @@ def test_input_is_validated_before_any_provider_call(corpus, question, match):
     with pytest.raises(InputError, match=match):
         service(corpus, llm).answer(question)
     assert llm.calls == []
+
+
+def test_a_sentence_quoted_by_two_claims_is_shown_once(corpus):
+    twice = {**GOOD, "claims": GOOD["claims"] * 2}
+    response, _ = service(corpus, Script(ANSWERABLE, twice)).answer(
+        "Which enzyme does allopurinol inhibit?"
+    )
+    assert len(response.sources[0].excerpts) == 1
+    assert len(response.answer.explanation_claims) == 2

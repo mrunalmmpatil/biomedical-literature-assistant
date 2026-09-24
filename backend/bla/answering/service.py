@@ -297,9 +297,10 @@ class AnswerService:
         excerpts: dict[str, list[SourceExcerpt]] = {}
         for claim in result.claims:
             for sid, e in claim.excerpts:
-                excerpts.setdefault(sid, []).append(
-                    SourceExcerpt(field=e.field, start=e.start, end=e.end, text=e.text)
-                )
+                excerpt = SourceExcerpt(field=e.field, start=e.start, end=e.end, text=e.text)
+                # Two claims may quote the same sentence; show it once.
+                if excerpt not in excerpts.setdefault(sid, []):
+                    excerpts[sid].append(excerpt)
         return [
             Source(
                 source_id=sid,

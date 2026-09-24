@@ -53,7 +53,16 @@ class Settings(BaseSettings):
     # is explicitly enabled for local development. Fail closed by default.
     allow_unmetered_generation: bool = False
     corpus_path: Optional = None
-    """papers.jsonl of the frozen collection the answer endpoint searches."""
+    """papers.jsonl of the frozen collection the answer endpoint searches;
+    relative paths resolve against the backend directory."""
+
+    # Shared admission control (technical PRD 8.2): Upstash Redis, provisioned
+    # through the Vercel integration, which sets these names.
+    kv_rest_api_url: Optional = None
+    kv_rest_api_token: Optional = None
+    public_daily_attempts: int = 300
+    """Site-wide provider attempts per UTC day, below the 1,000 free allowance."""
+    client_hourly_limit: int = 5
 
     def origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
