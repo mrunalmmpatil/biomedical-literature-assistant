@@ -1,0 +1,43 @@
+{
+  "name": "model-comparison-v1",
+  "registered_on": "2026-09-24",
+  "registered_before_run": true,
+  "motivation": "In the prompt-v2 development run, 26% of provider attempts on nvidia/nemotron-3-super-120b-a12b:free failed on the provider side (overload, timeouts), leaving 11 of 50 questions unanswered for provider reasons alone.",
+  "fixed": {
+    "split": "development (50 questions)",
+    "retrieval": "retrieval-baseline-v1, BM25",
+    "prompt_version": "2",
+    "budgets": "3 attempts, 1 retry, 45s per request, 90s per question",
+    "normalization_version": "1"
+  },
+  "incumbent": {
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "run": "answers-development-20260924T041559Z"
+  },
+  "candidates": [
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nex-agi/nex-n2.5-pro:free"
+  ],
+  "excluded": {
+    "dots-studio/dots-3-note-preview:free": "preview; may be withdrawn",
+    "stealth/space-bunny-alpha": "stealth; may be withdrawn",
+    "google/lyria-3-*": "audio/music generation",
+    "liquid/lfm-2.5-2.6b:free": "2.6B parameters; too small for the task",
+    "nex-agi/nex-n2.5-mini:free": "smaller sibling of a listed candidate",
+    "openrouter/free": "random router; forbidden for controlled runs (technical PRD 6.2)",
+    "models without response_format": "strict JSON schema output is required"
+  },
+  "procedure": [
+    "Gate 1: one structured-output probe request (check_openrouter.py --generate). Fail -> excluded.",
+    "Gate 2: the 11 controlled fixtures. Any failure on no-evidence, wrong-evidence-memory-temptation, instruction-in-source, or personal-advice -> excluded, whatever its accuracy. Other fixture failures are reported.",
+    "Then the full 50-question development run, each model its own separately identified run."
+  ],
+  "decision_rule": {
+    "score": "mean of fact strict accuracy and list F1, both over all 50 attempted questions (non-answers score zero)",
+    "choose": "the highest score among models passing both gates",
+    "near_tie": "within 0.05 of the best: prefer the higher answered rate, then the lower p50 latency",
+    "incumbent_kept_unless": "a candidate's score exceeds it; the paired bootstrap interval is reported either way",
+    "uncertainty": "50 questions cannot separate small differences; the report states intervals and does not claim a winner from noise"
+  }
+}
