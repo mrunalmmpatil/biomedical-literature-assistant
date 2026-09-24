@@ -3,7 +3,7 @@
 Answers focused biomedical questions from a controlled collection of published
 titles and abstracts, with citations and inspectable source text.
 
-**Status: Milestone 5 (web demo) deployed; Milestone 6 (final evaluation) next.**
+**Status: complete. All six milestones are done; held-out evaluation run once on 2026-09-24 ([final report](docs/final-evaluation.md)).**
 
 **Try it:** https://bla-frontend-gilt.vercel.app
 
@@ -25,6 +25,11 @@ titles and abstracts, with citations and inspectable source text.
 - Milestone 5: the public question page with shared request limits (20 per
   visitor per hour; a site-wide daily cap), tested in a real browser
   ([web demo](docs/web-demo.md)).
+- Milestone 6: held-out test, run once under frozen settings. All hard gates
+  held; 9 of 10 quality targets met (answered 88%, fact accuracy 0.40, list
+  F1 0.53, retrieval Recall@10 0.70 BM25 / 0.67 vector). **Missed:** 6 of 104
+  claims (5.8%) went beyond their quotes, against a target of at most 5%
+  ([final report](docs/final-evaluation.md)).
 
 ## Documents
 
@@ -39,6 +44,7 @@ titles and abstracts, with citations and inspectable source text.
 | [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector retrieval on the development split |
 | [`docs/answering-development.md`](docs/answering-development.md) | Answer workflow, outcomes, and development results |
 | [`docs/web-demo.md`](docs/web-demo.md) | The deployed demo, its request limits, and browser checks |
+| [`docs/final-evaluation.md`](docs/final-evaluation.md) | **Held-out results, targets, and limitations** |
 
 ## Layout
 
