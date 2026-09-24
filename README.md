@@ -12,7 +12,9 @@ titles and abstracts, with citations and inspectable source text.
   frozen 3,653-paper collection ([data protocol](docs/data-protocol.md)).
 - Milestone 3: BM25 and Pinecone vector retrieval over the same units; on
   the development split they are statistically indistinguishable (Recall@10
-  0.64 vs 0.65) ([retrieval report](docs/retrieval-development.md)).
+  0.64 vs 0.65). A pre-registered hybrid (reciprocal rank fusion) reached
+  0.66 without a significant gain and was not adopted
+  ([retrieval report](docs/retrieval-development.md)).
 
 Answer generation and the question-and-answer interface do not exist yet.
 

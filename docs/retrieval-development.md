@@ -105,9 +105,62 @@ development data as its own configuration before any test run.
   deployed with the backend. Vector search uses Pinecone read units and
   query-embedding tokens, and it may handle lay phrasing better. That is
   untested here, because BioASQ questions are written by experts.
-- **Optional next experiment:** hybrid retrieval (for example, reciprocal
-  rank fusion of both lists), run as `retrieval-baseline-v2` on development
-  data only.
+- **Hybrid retrieval was tried and not adopted.** See the next section.
+
+## Hybrid experiment: retrieval-hybrid-v2 (registered, not adopted)
+
+The union result above prompted one experiment. **Its configuration was
+committed before it ran** ([`retrieval-hybrid-v2.json`](../evaluation/configs/retrieval-hybrid-v2.json),
+commit `3a82f82`):
+
+- reciprocal rank fusion, score = Σ 1 / (60 + rank), using the constant from
+  Cormack et al. (2009) untuned;
+- the top 50 candidates from each of BM25 and vector search, weighted
+  equally;
+- the top 10 fused papers returned. Fusion uses ranks only, so a BM25 score
+  and a cosine similarity are never added together.
+
+**Hypothesis:** fusion raises development Recall@10 above both baselines.
+
+Run [`retrieval-development-20260924T021439Z`](../evaluation/results/retrieval-development-20260924T021439Z.json)
+(analysis: [`….analysis.json`](../evaluation/results/retrieval-development-20260924T021439Z.analysis.json)).
+BM25 and vector reproduced their earlier results exactly.
+
+| n = 50 | BM25 | Vector | Hybrid |
+|---|---:|---:|---:|
+| Recall@5 | 0.493 | 0.510 | 0.481 |
+| Recall@10 | 0.639 | 0.652 | **0.662** |
+| MRR@10 | 0.832 | 0.804 | 0.797 |
+| Recall@10 relative to ceiling | 0.759 | 0.765 | 0.781 |
+| Missed papers not in the top 50 | 97 | 105 | 85 |
+| Search latency p50 | 3 ms | 172 ms | 169 ms |
+
+| Paired difference | Mean | 95% CI | Questions better / worse / tied |
+|---|---:|---|---|
+| Hybrid − BM25, Recall@10 | +0.023 | [−0.012, +0.058] | 15 / 8 / 27 |
+| Hybrid − Vector, Recall@10 | +0.010 | [−0.021, +0.040] | 12 / 6 / 32 |
+| Hybrid − BM25, Recall@5 | −0.012 | [−0.041, +0.017] | 10 / 7 / 33 |
+| Hybrid − Vector, Recall@5 | −0.029 | [−0.059, −0.003] | 6 / 9 / 35 |
+| Hybrid − BM25, MRR@10 | −0.035 | [−0.092, +0.017] | 6 / 7 / 37 |
+| Hybrid − Vector, MRR@10 | −0.007 | [−0.083, +0.069] | 6 / 8 / 36 |
+
+**Outcome: the hypothesis is not supported.** The Recall@10 gains are small,
+and both intervals include zero. The hybrid wins more questions than it
+loses, but by small amounts. It is **worse at Recall@5** than vector search:
+fusion pushes some relevant papers from the top 5 down to ranks 6–10. Nine
+paired comparisons were made, so one interval excluding zero is weak
+evidence on its own. Still, it points the wrong way for Milestone 4, which
+supplies up to the top 5 papers to generation.
+
+The union's 0.760 did not carry over because the union is an oracle over 20
+papers, both top-10 lists together. A fused list still has to choose 10.
+
+**Decision:** retrieval-hybrid-v2 is **not adopted**. `retrieval-baseline-v1`
+(BM25 and vector) remains the frozen configuration. As registered, no
+variant (another rrf_k, weights, or depth) is tried on these 50 development
+questions. Such a search would tune on the same small set that reports the
+result. The fusion code stays in the repository (`bla/retrieval/hybrid.py`),
+tested and unused.
 
 ## Operational notes
 
