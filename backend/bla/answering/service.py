@@ -8,8 +8,8 @@ One service drives both the API and evaluation, so the pipeline evaluated is
 the pipeline served. It returns the public response and, separately, internal
 diagnostics that are never sent to clients.
 
-Budgets per request: at most 3 provider attempts in total, at most one of them
-a transient retry, a 45s ceiling per attempt, and a 90s overall deadline.
+Budgets per request: at most 4 provider attempts in total, at most two of them
+retries, a 45s ceiling per attempt, and a 90s overall deadline.
 Daily quota exhaustion and authentication errors are never retried.
 """
 
@@ -49,8 +49,10 @@ from bla.validation import InvalidAnswer, validate_answer
 
 MAX_QUESTION_CHARS = 2000
 MAX_CLARIFICATION_CHARS = 1000
-MAX_ATTEMPTS = 3
-MAX_RETRIES = 1
+MAX_ATTEMPTS = 4
+MAX_RETRIES = 2
+"""Raised from 3 attempts / 1 retry on 2026-09-24 (technical PRD 8.1, agreed by the
+project owner) because the free model fails on the provider side often."""
 DEADLINE_SECONDS = 90.0
 RETRIEVAL_DEPTH = 10
 MAX_SOURCES = 5
