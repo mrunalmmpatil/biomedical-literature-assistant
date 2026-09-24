@@ -72,3 +72,10 @@ def test_failures_count_but_are_not_cached(tmp_path):
         llm.complete("s", "u", "n", {})
     assert ledger.used() == 1
     assert list((tmp_path / "c").iterdir()) == []
+
+
+def test_ceiling_keeps_a_reserve_below_the_provider_limit():
+    from bla.benchmark.llm_budget import ceiling_from_allowance
+
+    assert ceiling_from_allowance(ledger_used=45, remaining=969, reserve=100) == 45 + 869
+    assert ceiling_from_allowance(ledger_used=10, remaining=50, reserve=100) == 10

@@ -1,0 +1,54 @@
+{
+  "run_id": "answers-development-20260924T041559Z",
+  "split": "development",
+  "complete": true,
+  "stopped": null,
+  "questions_attempted": 50,
+  "questions_planned": 50,
+  "commit": "4814f9e85f7520b78ac66edbaf345e311fea2f6c",
+  "configuration": {
+    "retrieval": "bm25 (retrieval-baseline-v1)",
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "prompt_version": "2",
+    "normalization_version": "1",
+    "corpus_papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+    "benchmark_sha256": "e0cce59bad2ba6f5c198e55caa10389e35233069e4183e5116093e999cf184b0"
+  },
+  "fact": {
+    "attempted": 25,
+    "answered": 18,
+    "outcomes": {
+      "answered": 18,
+      "service_unavailable": 6,
+      "insufficient_evidence": 1
+    },
+    "strict_accuracy": 0.44,
+    "lenient_accuracy": 0.44,
+    "strict_accuracy_when_answered": 0.6111111111111112
+  },
+  "list": {
+    "attempted": 25,
+    "answered": 18,
+    "outcomes": {
+      "answered": 18,
+      "service_unavailable": 7
+    },
+    "precision": 0.38645238095238094,
+    "recall": 0.3759523809523809,
+    "f1": 0.36510622710622714,
+    "f1_when_answered": 0.5070919820919821
+  },
+  "operations": {
+    "provider_attempts": 119,
+    "provider_errors": {
+      "ProviderUnavailable": 22,
+      "ProviderTimeout": 9
+    },
+    "validation_failures": 3,
+    "requests_dispatched_this_run": 106,
+    "requests_from_cache_this_run": 13,
+    "latency_ms_p50": 17967.85,
+    "latency_ms_max": 91698.2,
+    "latency_note": "cached completions report their original latency"
+  }
+}

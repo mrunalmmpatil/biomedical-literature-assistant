@@ -27,6 +27,16 @@ from bla.answering.prompts import PROMPT_VERSION
 from bla.llm import Completion
 
 DEFAULT_DAILY_CEILING = 45
+"""Fallback only, from the documented 50/day tier. Runners size the ceiling
+from the account's reported allowance instead (ceiling_from_allowance)."""
+
+RESERVE = 100
+"""Requests left untouched for the demo and manual checks."""
+
+
+def ceiling_from_allowance(ledger_used: int, remaining: int, reserve: int = RESERVE) -> int:
+    """Ledger ceiling that stops `reserve` short of the provider's own limit."""
+    return ledger_used + max(0, remaining - reserve)
 
 
 class DailyBudgetReached(RuntimeError):
