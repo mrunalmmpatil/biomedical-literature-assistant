@@ -34,7 +34,7 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "backend"))
 
 from bla.answering.prompts import PROMPT_VERSION
-from bla.answering.service import AnswerService
+from bla.answering.service import MAX_ATTEMPTS, MAX_RETRIES, AnswerService
 from bla.benchmark.answer_metrics import NORMALIZATION_VERSION, score_fact, score_list
 from bla.benchmark.bioasq import BenchmarkQuestion, QuestionType
 from bla.benchmark.llm_budget import (
@@ -61,6 +61,11 @@ def main() -> int:
     p.add_argument("--split", default="development", choices=["development"])
     p.add_argument("--limit", type=int, default=None, help="first N questions by ID")
     p.add_argument("--model", default=MODEL, help="pinned OpenRouter model ID for this run")
+    p.add_argument(
+        "--fresh",
+        action="store_true",
+        help="ignore earlier cached completions: every request is live (a new cache per run)",
+    )
     args = p.parse_args()
 
     bench_path = REPO / "data" / "benchmark" / args.benchmark / "questions.jsonl"
@@ -83,7 +88,9 @@ def main() -> int:
         f"== OpenRouter free-model allowance: {allowance.used}/{allowance.limit} used, "
         f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
     )
-    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"], model=args.model), CACHE, ledger)
+    started_at = datetime.now(UTC)
+    cache = CACHE / f"fresh-{started_at:%Y%m%dT%H%M%SZ}" if args.fresh else CACHE
+    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"], model=args.model), cache, ledger)
     service = AnswerService(
         BM25Retriever(papers),
         {paper.pmid: paper for paper in papers},
@@ -189,6 +196,9 @@ def main() -> int:
             "model": llm.model,
             "prompt_version": PROMPT_VERSION,
             "normalization_version": NORMALIZATION_VERSION,
+            "max_attempts": MAX_ATTEMPTS,
+            "max_retries": MAX_RETRIES,
+            "fresh": args.fresh,
             "corpus_papers_sha256": sha256(papers_path.read_bytes()),
             "benchmark_sha256": sha256(bench_path.read_bytes()),
         },
