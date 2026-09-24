@@ -240,3 +240,21 @@ def test_a_sentence_quoted_by_two_claims_is_shown_once(corpus):
     )
     assert len(response.sources[0].excerpts) == 1
     assert len(response.answer.explanation_claims) == 2
+
+
+@pytest.mark.parametrize(
+    ("raw", "shown"),
+    [
+        ("CDK1 (S1, S2, S5)", "CDK1"),
+        (
+            "JTV519 is a 1,4-benzothiazepine derivative. [S1]",
+            "JTV519 is a 1,4-benzothiazepine derivative.",
+        ),
+        ("S1 nuclease cleaves single strands", "S1 nuclease cleaves single strands"),
+        ("Aurora A (S3)", "Aurora A"),
+    ],
+)
+def test_inline_source_ids_are_removed_from_display_text(raw, shown):
+    from bla.answering.service import _display
+
+    assert _display(raw) == shown
