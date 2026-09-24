@@ -3,7 +3,9 @@
 Answers focused biomedical questions from a controlled collection of published
 titles and abstracts, with citations and inspectable source text.
 
-**Status: Milestone 4 (answer generation) in progress.**
+**Status: Milestone 5 (web demo) deployed; Milestone 6 (final evaluation) next.**
+
+**Try it:** https://bla-frontend-gilt.vercel.app
 
 - Milestone 1: every service was verified against a real account, and both
   apps are deployed ([feasibility report](docs/feasibility-report.md)):
@@ -16,11 +18,13 @@ titles and abstracts, with citations and inspectable source text.
   0.66 without a significant gain and was not adopted
   ([retrieval report](docs/retrieval-development.md)).
 
-- Milestone 4: the answer workflow runs end to end locally with the pinned
-  free model; 10 of 11 controlled outcome cases pass, and the development run
-  is spreading across days under the free-tier limit
-  ([answering report](docs/answering-development.md)). Public generation stays
-  closed until shared quota control exists.
+- Milestone 4: cited answers from a pinned free model. 11 of 11 controlled
+  outcome cases pass. Development: 39 of 50 answered, fact accuracy 0.44 and
+  list F1 0.27–0.37 over all attempted questions, and 90% of claims supported
+  by their quotes ([answering report](docs/answering-development.md)).
+- Milestone 5: the public question page with shared request limits (5 per
+  visitor per hour; a site-wide daily cap), tested in a real browser
+  ([web demo](docs/web-demo.md)).
 
 ## Documents
 
@@ -34,6 +38,7 @@ titles and abstracts, with citations and inspectable source text.
 | [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, collection, and budget |
 | [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector retrieval on the development split |
 | [`docs/answering-development.md`](docs/answering-development.md) | Answer workflow, outcomes, and development results |
+| [`docs/web-demo.md`](docs/web-demo.md) | The deployed demo, its request limits, and browser checks |
 
 ## Layout
 

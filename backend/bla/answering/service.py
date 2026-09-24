@@ -13,6 +13,7 @@ retries, a 45s ceiling per attempt, and a 90s overall deadline.
 Daily quota exhaustion and authentication errors are never retried.
 """
 
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -66,6 +67,15 @@ MESSAGES = {
     Outcome.UNSUPPORTED_REQUEST: "This assistant answers focused biomedical fact or list questions from published abstracts.",
     Outcome.SERVICE_UNAVAILABLE: "The answer service is unavailable right now. Please try again later.",
 }
+
+
+_INLINE_SOURCE_IDS = re.compile(r"\s*[(\[]\s*S\d+(?:\s*[,;/]\s*S\d+)*\s*[)\]]")
+
+
+def _display(text: str) -> str:
+    """Drop source IDs the model wrote into its own text ("CDK1 (S1, S2)");
+    citations are shown from the structured source_ids instead."""
+    return _INLINE_SOURCE_IDS.sub("", text).strip()
 
 
 class InputError(ValueError):
@@ -226,9 +236,13 @@ class AnswerService:
                 sources=self._sources(shown, result),
             )
         answer = Answer(
-            items=[AnswerItem(text=i.text, source_ids=list(i.source_ids)) for i in result.items],
+            items=[
+                AnswerItem(text=_display(i.text), source_ids=list(i.source_ids))
+                for i in result.items
+            ],
             explanation_claims=[
-                ExplanationClaim(text=c.text, source_ids=list(c.source_ids)) for c in result.claims
+                ExplanationClaim(text=_display(c.text), source_ids=list(c.source_ids))
+                for c in result.claims
             ],
             qualifications=list(result.qualifications),
         )
