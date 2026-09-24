@@ -59,9 +59,11 @@ class Script:
     def __init__(self, *steps):
         self.steps = list(steps)
         self.calls = []
+        self.users = []
 
     def complete(self, system, user, schema_name, schema, timeout=None):
         self.calls.append(schema_name)
+        self.users.append(user)
         step = self.steps.pop(0)
         if isinstance(step, Exception):
             raise step
@@ -159,6 +161,10 @@ def test_invalid_citation_gets_one_retry_then_answers(corpus):
     assert response.outcome is Outcome.ANSWERED
     assert llm.calls == ["assessment", "answer", "answer"]
     assert "quote not found" in diag.attempts[1]["validation"]
+    # The retry names the problem, so it is not the identical prompt again.
+    assert llm.users[2].startswith(llm.users[1])
+    assert "rejected by an automatic check: claim" in llm.users[2]
+    assert "quote not found in S1" in llm.users[2]
 
 
 def test_invalid_citation_twice_is_service_unavailable_never_a_partial_answer(corpus):

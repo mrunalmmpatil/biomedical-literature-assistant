@@ -9,16 +9,21 @@ with every other use of the key. Evaluation therefore:
   or re-scoring spends nothing. A cached completion is marked, and its latency
   is the original measurement. Failures are never cached.
 
-The cache key contains the full prompts, which contain the prompt version and
-the evidence, so a changed prompt, corpus, or model is a cache miss.
+The cache key contains the full prompts, which contain the evidence, plus the
+prompt version, so a changed prompt, corpus, or model is a cache miss. It also
+contains the occurrence number of that exact prompt within this process: a
+retry of an identical prompt is a new request, never the previous response
+replayed, while a re-run of the same sequence still hits the cache.
 """
 
 import hashlib
 import json
 import pathlib
+from collections import Counter
 from dataclasses import asdict
 from datetime import UTC, datetime
 
+from bla.answering.prompts import PROMPT_VERSION
 from bla.llm import Completion
 
 DEFAULT_DAILY_CEILING = 45
@@ -57,11 +62,17 @@ class CachingLLM:
         cache_dir.mkdir(parents=True, exist_ok=True)
         self.hits = 0
         self.dispatched = 0
+        self._seen: Counter[str] = Counter()
 
     def complete(self, system, user, schema_name, schema, timeout=None) -> Completion:
-        key = hashlib.sha256(
-            json.dumps([self.model, system, user, schema_name, schema], sort_keys=True).encode()
+        prompt = hashlib.sha256(
+            json.dumps(
+                [PROMPT_VERSION, self.model, system, user, schema_name, schema], sort_keys=True
+            ).encode()
         ).hexdigest()
+        occurrence = self._seen[prompt]
+        self._seen[prompt] += 1
+        key = f"{prompt}-{occurrence}"
         path = self._cache_dir / f"{key}.json"
         if path.exists():
             self.hits += 1

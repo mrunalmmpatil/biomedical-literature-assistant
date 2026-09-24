@@ -26,8 +26,11 @@ BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 """Verified in Milestone 1 to honour strict JSON schemas (feasibility report 4a)."""
 
-REQUEST_TIMEOUT = 25.0
-"""Individual provider request (technical PRD 8.1)."""
+REQUEST_TIMEOUT = 45.0
+"""Individual provider request. The PRD 8.1 starting default was 25s; raised on
+2026-09-24 after development generations took 19-24s (the model reasons
+before answering), so ordinary slow answers would have timed out. The 90s
+request deadline still bounds the total."""
 
 
 class ProviderError(RuntimeError):
