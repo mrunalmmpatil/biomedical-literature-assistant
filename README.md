@@ -1,35 +1,208 @@
 # Biomedical Literature Assistant
 
-Answers focused biomedical questions from a controlled collection of published
-titles and abstracts, with citations and inspectable source text.
+A question-answering assistant for focused biomedical questions. It answers from
+a fixed collection of published PubMed titles and abstracts, using a pinned free
+language model, and shows the exact quoted sentences behind every claim. A
+question goes through assessment (in scope, out of scope, or missing a detail),
+retrieval, generation, and a citation check that locates every quote verbatim in
+its source before anything is displayed. When the collection does not support
+an answer, the assistant says so instead of answering from the model's memory.
+A separate evaluator scores the frozen system on held-out BioASQ questions.
 
-**Status: complete. All six milestones are done; held-out evaluation run once on 2026-09-24 ([final report](docs/final-evaluation.md)).**
+**Implementation status:** complete. All six milestones are done and the
+held-out evaluation was run once, on 2026-09-24. All hard gates held and 9 of 10
+quality targets were met. The missed target: 6 of 104 claims (5.8%) said more
+than their quotes, against a limit of 5%. See the [final evaluation](docs/final-evaluation.md).
 
-**Try it:** https://bla-frontend-gilt.vercel.app
+**Live demo:** https://bla-frontend-gilt.vercel.app (20 questions per visitor per hour)
 
-- Milestone 1: every service was verified against a real account, and both
-  apps are deployed ([feasibility report](docs/feasibility-report.md)):
-  https://bla-frontend-gilt.vercel.app → https://bla-backend.vercel.app/api/health
-- Milestone 2: 100 BioASQ questions (25 fact + 25 list per split) and a
-  frozen 3,653-paper collection ([data protocol](docs/data-protocol.md)).
-- Milestone 3: BM25 and Pinecone vector retrieval over the same units; on
-  the development split they are statistically indistinguishable (Recall@10
-  0.64 vs 0.65). A pre-registered hybrid (reciprocal rank fusion) reached
-  0.66 without a significant gain and was not adopted
-  ([retrieval report](docs/retrieval-development.md)).
+## Setup
 
-- Milestone 4: cited answers from a pinned free model. 11 of 11 controlled
-  outcome cases pass. Development: 39 of 50 answered, fact accuracy 0.44 and
-  list F1 0.27–0.37 over all attempted questions, and 90% of claims supported
-  by their quotes ([answering report](docs/answering-development.md)).
-- Milestone 5: the public question page with shared request limits (20 per
-  visitor per hour; a site-wide daily cap), tested in a real browser
-  ([web demo](docs/web-demo.md)).
-- Milestone 6: held-out test, run once under frozen settings. All hard gates
-  held; 9 of 10 quality targets met (answered 88%, fact accuracy 0.40, list
-  F1 0.53, retrieval Recall@10 0.70 BM25 / 0.67 vector). **Missed:** 6 of 104
-  claims (5.8%) went beyond their quotes, against a target of at most 5%
-  ([final report](docs/final-evaluation.md)).
+Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js 20.9+, and
+npm. Accounts: OpenRouter (free models only), Pinecone (free Starter; vector
+retrieval only), and optionally Upstash Redis (shared request limits for a
+public deployment). Run from the repository root:
+
+```sh
+uv sync --project backend --extra dev
+npm --prefix frontend ci
+```
+
+Copy `backend/.env.example` to `backend/.env` and fill in:
+
+```sh
+OPENROUTER_API_KEY=sk-or-v1-...
+PINECONE_API_KEY=pcsk_...
+CLARIFICATION_SECRET=...      # python -c "import secrets; print(secrets.token_urlsafe(32))"
+CORPUS_PATH=corpus/bioasq14b-v1.papers.jsonl
+CORPUS_VERSION=bioasq14b-v1
+ALLOW_UNMETERED_GENERATION=true   # local development only
+```
+
+Copy `frontend/.env.local.example` to `frontend/.env.local`. Keys stay in the
+backend; the frontend holds only the backend URL.
+
+The model is pinned in `backend/bla/llm.py`: `nvidia/nemotron-3-super-120b-a12b:free`.
+Paid models, the random free router, and provider fallbacks are never used. The
+project's OpenRouter key has a $0 credit limit, so it cannot spend money. Answer
+generation is **off by default**: it runs only with shared request limits
+configured, or locally with `ALLOW_UNMETERED_GENERATION=true`.
+
+The collection file (`CORPUS_PATH`) is not in the repository. It is rebuilt from
+BioASQ and PubMed; see [Reproducing the evaluation](#reproducing-the-evaluation).
+
+## Reading results
+
+Every question ends in exactly one outcome, defined in `backend/bla/contracts.py`
+and used by the API, the web page, and the evaluator:
+
+| Outcome | Meaning | HTTP |
+|---|---|---|
+| `answered` | A cited answer whose every quote was found verbatim in its source | `200` |
+| `needs_clarification` | One material detail is missing; the page asks one question, once | `200` |
+| `insufficient_evidence` | The collection does not support an answer; nothing comes from model memory | `200` |
+| `unsupported_request` | Out of scope: personal medical advice, not biomedical, yes/no or summary questions | `200` |
+| `service_unavailable` | The free provider failed, timed out, or an answer failed validation on every attempt | `503` / `504` |
+
+A request over the visitor or daily limit gets `429`, a repeated submission key
+used for a different question gets `409`, and invalid input gets `400`/`422`.
+Every response carries a plain-language `message`. Provider errors, prompts, and
+model output never reach the response body.
+
+An answer shows the answer items with numbered citations, a short explanation
+where each claim cites its sources, any caveats the sources report, and the
+sources themselves: title, journal, year, PMID, PubMed notices (corrected or
+expression of concern), the quoted sentences, and the full abstract with those
+sentences highlighted. **Passing the citation check means every quote is
+genuine, not that every claim is correct.** In the held-out evaluation, about
+1 claim in 17 overstated its quote, so the quote is always shown for checking.
+
+## Local web UI
+
+```sh
+# Backend: http://localhost:8010
+cd backend && uv run uvicorn app:app --port 8010
+
+# Frontend: http://localhost:3000 (second shell)
+cd frontend && npm run dev
+```
+
+Open [the local app](http://localhost:3000). The page gives the question box,
+the collection's scope and limits, the pending state, the one-step
+clarification, the answer, and the source panels. It works with a keyboard
+(Ctrl/⌘+Enter to ask; the abstract toggles are buttons) and on phones. A
+refresh clears the page; there is no saved history, by design.
+
+## Screenshots
+
+The question page states the collection's scope, what it cannot answer, and the request limit.
+
+![Ask a question](docs/screenshots/01-ask-a-question.png)
+
+While it works, the page says what is happening and how long it usually takes. The button is disabled, so a double click sends one request.
+
+![Working](docs/screenshots/02-working.png)
+
+An answer lists its items with numbered citations, a short explanation, and caveats the sources report. The sources follow, with the quoted text checked word for word against each stored abstract.
+
+![Answer with citations](docs/screenshots/03-answer-with-citations.png)
+
+A question missing a material detail gets exactly one clarifying question.
+
+![Clarification](docs/screenshots/04-clarification.png)
+
+When the collection does not support an answer, the assistant says so and shows what it did retrieve, instead of answering from the model's memory. Allopurinol is not in the collection.
+
+![Not enough evidence](docs/screenshots/05-not-enough-evidence.png)
+
+## How it works
+
+**Collection.** 3,653 PubMed records: every reference paper for 100 BioASQ
+questions plus the top 3 PubMed "similar articles" of each. The similar
+articles are chosen by paper ID only, never by question text or answers. The
+collection is frozen with SHA-256 fingerprints; retracted records are excluded.
+One searchable unit per paper, except 15 overlong papers, which are split into
+sentence-bounded passages instead of being silently truncated.
+
+**Retrieval.** BM25 (in process, 3 ms) and Pinecone vector search
+(`llama-text-embed-v2`, 1024 dimensions, about 180 ms) over the same units. The
+two methods tied in development, so the demo uses BM25 and both remain
+evaluated. A pre-registered hybrid was tested and not adopted.
+
+**Answering.** Two provider calls: an assessment and a generation from at most
+5 sources, labelled S1–S5. The source text is marked as data, and instructions
+inside it are ignored (tested with a planted instruction). Every quote must
+appear verbatim in its cited source; the server computes offsets and builds
+URLs from stored PMIDs. An invalid answer is retried with feedback and is never
+shown in part.
+
+**Limits.** At most 4 provider attempts and 2 retries per question, 45s per
+attempt, and a 90s deadline. On the public demo, Upstash Redis holds shared
+counters: 20 questions per visitor per hour (a salted, daily-rotating hash of
+the network address; no accounts or stored IP addresses), a site-wide cap of 300
+provider attempts per day (below the 1,000 free), counted before each dispatch,
+and request keys so a double click is answered once. If the store is
+unreachable, generation fails closed.
+
+**Separation.** Evaluation code lives in `bla/benchmark`, which the application
+never imports (enforced by a test). Reference answers, split labels, and the
+BioASQ download stay in the git-ignored `data/`. Tracked manifests hold only
+IDs, counts, and hashes.
+
+## Evaluation results
+
+Held-out test: 50 BioASQ questions (25 fact, 25 list), run once under the frozen
+[`final-v1`](evaluation/configs/final-v1.json) config, which was committed before the run:
+
+| | Target | Result |
+|---|---|---|
+| Hard gates (complete accounting, real citations, exact excerpts, no key leakage) | all | ✅ all |
+| Answered | ≥ 70% | ✅ 88% |
+| Fact strict accuracy (all attempted) | ≥ 0.35 | ✅ 0.40 |
+| List F1 (all attempted) | ≥ 0.25 | ✅ 0.53 |
+| Retrieval Recall@10, BM25 / vector | ≥ 0.55 | ✅ 0.703 / 0.665 |
+| Claims supported by their quotes | ≥ 85% | ✅ 85.6% |
+| Claims unsupported | ≤ 5% | ❌ 5.8% |
+| Median latency | ≤ 45s | ✅ 20.9s |
+
+These results describe a research prototype on a controlled collection. They do
+not establish clinical usefulness, and the claim review was done by an AI
+reviewer, not a domain expert. Details, limitations, and development-versus-test
+comparisons are in the [final evaluation](docs/final-evaluation.md).
+
+## Verification
+
+```sh
+cd backend  && uv run pytest -q && uv run ruff check . ../scripts
+cd frontend && npx tsc --noEmit && npx eslint . && npm run build
+```
+
+The 208 backend tests use scripted models and an in-memory Redis stand-in, and
+never call a provider. Live evidence (real accounts, a real browser, a deployed
+site) is recorded separately in the [feasibility report](docs/feasibility-report.md)
+and the [web demo report](docs/web-demo.md).
+
+## Reproducing the evaluation
+
+Needs a BioASQ registration (`training14b.json` in `data/bioasq/`) and the keys
+above. Every step reuses saved responses, so a rebuild reproduces the frozen
+snapshot:
+
+```sh
+cd backend
+uv run python ../scripts/benchmark/build_benchmark.py ../data/bioasq/training14b.json   # questions, split, collection
+uv run --env-file .env python ../scripts/indexing/build_index.py bioasq14b-v1              # Pinecone index
+uv run --env-file .env python ../scripts/evaluation/run_retrieval.py                      # development retrieval
+uv run --env-file .env python ../scripts/evaluation/run_fixtures.py                       # controlled outcomes
+uv run --env-file .env python ../scripts/evaluation/run_answers.py --fresh                # development answers
+uv run python ../scripts/evaluation/check_gates.py <run_id>                               # hard gates
+```
+
+The held-out split runs only with `--split test --final ../evaluation/configs/final-v1.json`,
+from a clean tree, with matching settings, and only once. A result already
+exists, so the runners refuse to run it again. Evaluation runs keep a daily
+request ledger sized from the account's reported free allowance, and cache
+completions so re-scoring spends nothing.
 
 ## Documents
 
@@ -39,105 +212,27 @@ titles and abstracts, with citations and inspectable source text.
 | [`TECHNICAL_PRD.md`](TECHNICAL_PRD.md) | Architecture, contracts, limits, evaluation protocol |
 | [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) | Milestones and completion gates |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Plain-language walkthrough with diagrams |
-| [`docs/feasibility-report.md`](docs/feasibility-report.md) | Measured provider limits and integration evidence |
-| [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, collection, and budget |
-| [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector retrieval on the development split |
-| [`docs/answering-development.md`](docs/answering-development.md) | Answer workflow, outcomes, and development results |
-| [`docs/web-demo.md`](docs/web-demo.md) | The deployed demo, its request limits, and browser checks |
+| [`docs/feasibility-report.md`](docs/feasibility-report.md) | Service verification and measured provider limits |
+| [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, and collection |
+| [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector, and the hybrid experiment |
+| [`docs/answering-development.md`](docs/answering-development.md) | Answer workflow, prompts, model comparison, claim review |
+| [`docs/web-demo.md`](docs/web-demo.md) | The deployed demo, request limits, browser checks |
 | [`docs/final-evaluation.md`](docs/final-evaluation.md) | **Held-out results, targets, and limitations** |
 
 ## Layout
 
 ```text
-backend/              FastAPI service (Vercel entrypoint: app.py)
-frontend/             Next.js interface
-scripts/feasibility/  Milestone 1 provider probes
-scripts/benchmark/    Milestone 2 benchmark and collection builder
-scripts/corpus/       Ad-hoc PubMed snapshot fetcher
-scripts/indexing/     Pinecone collection loader (resumable, rate-paced)
-scripts/evaluation/   Retrieval evaluation and paired analysis (development only)
-evaluation/manifests/ Tracked benchmark and index manifests (IDs and hashes; no answers)
-evaluation/configs/   Frozen configurations
-evaluation/results/   Tracked aggregate results; per-question runs stay in evaluation/runs/
-docs/                 Setup, data protocol, evaluation reports
+backend/              FastAPI service (Vercel entrypoint: app.py); package bla/
+frontend/             Next.js question page
+scripts/benchmark/    Benchmark and collection builder
+scripts/indexing/     Pinecone loader (resumable, rate-paced)
+scripts/evaluation/   Retrieval, answer, fixture, and gate runners
+scripts/feasibility/  Service probes
+evaluation/configs/   Frozen and registered configurations
+evaluation/results/   Tracked aggregate results (no answers or question text)
+evaluation/fixtures/  Invented-paper outcome cases
+docs/                 Reports
 ```
 
-## Running locally
-
-Requires Python 3.12 (via `uv`) and Node 20.9+.
-
-```bash
-# Backend — http://localhost:8010
-cd backend
-cp .env.example .env          # fill in keys as they become available
-uv sync --extra dev
-uv run uvicorn app:app --port 8010
-
-# Frontend — http://localhost:3000
-cd frontend
-cp .env.local.example .env.local
-npm install
-npm run dev
-```
-
-Port 8010 rather than 8000 only because 8000 was occupied during development;
-`NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local` carries the choice.
-
-## Checks
-
-```bash
-cd backend  && uv run pytest && uv run ruff check .
-cd frontend && npx tsc --noEmit && npm run build
-```
-
-## Feasibility probes
-
-These need real credentials. The OpenRouter probe spends no chat quota unless
-`--generate` is passed, because the free-model allowance is small.
-
-```bash
-cd backend
-uv run python ../scripts/feasibility/check_pinecone.py
-uv run python ../scripts/feasibility/check_openrouter.py
-uv run python ../scripts/feasibility/check_openrouter.py --generate <model-id>
-uv run python ../scripts/feasibility/check_bioasq.py ../data/bioasq/<file>.json
-```
-
-## Corpus preparation
-
-Fetches titles and abstracts from PubMed (public; an optional `NCBI_API_KEY`
-raises the rate limit). Writes a resumable snapshot under `data/corpus/<name>/`.
-
-```bash
-cd backend
-uv run python ../scripts/corpus/fetch_pubmed.py pmids.txt --name <snapshot-name>
-```
-
-## Benchmark and collection
-
-Needs `data/bioasq/training14b.json` (BioASQ registration required). This
-rebuilds `bioasq14b-v1` reproducibly from saved PubMed responses:
-
-```bash
-cd backend
-uv run python ../scripts/benchmark/build_benchmark.py ../data/bioasq/training14b.json
-```
-
-## Retrieval evaluation
-
-```bash
-cd backend
-uv run --env-file .env python ../scripts/indexing/build_index.py bioasq14b-v1   # once per collection version
-uv run --env-file .env python ../scripts/evaluation/run_retrieval.py         # development split only
-uv run --env-file .env python ../scripts/evaluation/analyze_retrieval.py <run_id>
-```
-
-## Constraints worth knowing
-
-- **Zero paid services** is a project constraint. OpenRouter's free tier allows
-  **50 requests/day**, which is tight against a 100-question benchmark — see
-  section 4 of the feasibility report.
-- Pinecone's free tier includes **5M embedding tokens/month**, which bounds
-  corpus size and re-index cycles more than its 2 GB storage does.
-- BioASQ data requires registration and carries NLM terms. Answer keys and
-  split labels must never reach the searchable corpus or the frontend bundle.
+Not included: full-text articles, open PubMed search, user accounts or saved
+history, streaming answers, and any clinical validation.
