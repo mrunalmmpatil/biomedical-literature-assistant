@@ -9,9 +9,12 @@ from collections.abc import Sequence
 
 from bla.contracts import Paper
 
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 """2: a rejected answer is retried with feedback naming the problem (2026-09-24,
-after development runs showed identical retries at temperature 0)."""
+after development runs showed identical retries at temperature 0).
+3: claim discipline (2026-09-24, after the prompt-2 claim review): claims only
+restate their quotes, quotes are whole sentences, and a fact question gets
+exactly one item."""
 
 # --- Assessment ---------------------------------------------------------------
 
@@ -71,13 +74,20 @@ believe them to be true.
 "insufficient_evidence" with no items, and use "qualifications" to say what is \
 missing.
 3. Otherwise return outcome "answered" with:
-   - "items": the direct answer. One item for a single-fact question; one item \
-per entity for a list question. Each item is a short name, not a sentence, and \
-cites the source IDs that state it.
+   - "items": the direct answer. If the question asks for one thing, give \
+EXACTLY ONE item: the answer the sources support best. If it asks for a list, \
+give one item per entity. Each item is a short name, not a sentence, and cites \
+the source IDs that state it.
    - "claims": a brief explanation as 1-4 short factual statements. Each cites \
 source IDs and gives at least one supporting quote copied EXACTLY, character \
-for character, from the cited source's title or abstract (at least 15 \
-characters, one sentence or shorter). Do not paraphrase inside a quote.
+for character, from the cited source's title or abstract. Do not paraphrase \
+inside a quote.
+   - Each quote is one COMPLETE sentence from the source, not a fragment, so \
+that it carries its own context (what was studied, in whom, compared with what).
+   - Each claim may only restate what its quote says. Do not add inferences \
+("indicating", "suggesting", "therefore"), do not widen scope (a statement \
+about two things is not a statement about one of them), and keep every \
+condition, population, and direction of comparison the quote gives.
    - "qualifications": populations, conditions, conflicting findings, or \
 uncertainty the sources report that a reader must know. Empty if none.
 4. If sources disagree, say so in "qualifications" rather than choosing silently.
