@@ -48,3 +48,22 @@ def test_origins_splits_and_trims(monkeypatch):
 
     monkeypatch.setenv("ALLOWED_ORIGINS", "http://a.test, http://b.test ,")
     assert Settings(_env_file=None).origins() == ["http://a.test", "http://b.test"]
+
+
+def test_answer_fails_closed_without_admission_control():
+    """No shared quota store exists yet, so public generation is refused
+    (technical PRD 8.2) rather than served unmetered."""
+    response = client.post("/api/answer", json={"question": "Which enzyme does X inhibit?"})
+    assert response.status_code == 503
+    assert response.json()["outcome"] == "service_unavailable"
+
+
+def test_answer_rejects_oversized_input_before_anything_else():
+    response = client.post("/api/answer", json={"question": "x" * 2001})
+    assert response.status_code == 422
+
+
+def test_coverage_describes_scope_without_a_model_call():
+    body = client.get("/api/coverage").json()
+    assert "abstracts" in body["scope"]
+    assert "not a search of all of PubMed" in body["collection"]

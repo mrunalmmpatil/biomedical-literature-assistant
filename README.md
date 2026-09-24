@@ -3,7 +3,7 @@
 Answers focused biomedical questions from a controlled collection of published
 titles and abstracts, with citations and inspectable source text.
 
-**Status: Milestone 3 complete; Milestone 4 (answer generation) next.**
+**Status: Milestone 4 (answer generation) in progress.**
 
 - Milestone 1: every service was verified against a real account, and both
   apps are deployed ([feasibility report](docs/feasibility-report.md)):
@@ -16,7 +16,11 @@ titles and abstracts, with citations and inspectable source text.
   0.66 without a significant gain and was not adopted
   ([retrieval report](docs/retrieval-development.md)).
 
-Answer generation and the question-and-answer interface do not exist yet.
+- Milestone 4: the answer workflow runs end to end locally with the pinned
+  free model; 10 of 11 controlled outcome cases pass, and the development run
+  is spreading across days under the free-tier limit
+  ([answering report](docs/answering-development.md)). Public generation stays
+  closed until shared quota control exists.
 
 ## Documents
 
@@ -29,6 +33,7 @@ Answer generation and the question-and-answer interface do not exist yet.
 | [`docs/feasibility-report.md`](docs/feasibility-report.md) | Measured provider limits and integration evidence |
 | [`docs/data-protocol.md`](docs/data-protocol.md) | Benchmark selection, split, collection, and budget |
 | [`docs/retrieval-development.md`](docs/retrieval-development.md) | BM25 vs vector retrieval on the development split |
+| [`docs/answering-development.md`](docs/answering-development.md) | Answer workflow, outcomes, and development results |
 
 ## Layout
 

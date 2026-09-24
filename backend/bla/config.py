@@ -48,6 +48,13 @@ class Settings(BaseSettings):
 
     allowed_origins: str = "http://localhost:3000"
 
+    # Answer generation (technical PRD 8.2). Public generation requires shared
+    # admission control, which does not exist yet, so it is off unless this
+    # is explicitly enabled for local development. Fail closed by default.
+    allow_unmetered_generation: bool = False
+    corpus_path: Optional = None
+    """papers.jsonl of the frozen collection the answer endpoint searches."""
+
     def origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
