@@ -91,3 +91,79 @@ class Excerpt(BaseModel):
     start: int = Field(ge=0)
     end: int = Field(gt=0)
     text: str
+
+
+# --- Answer API response (technical PRD 7.1) ---------------------------------
+
+
+class AnswerItem(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: str
+    source_ids: list[str]
+
+
+class ExplanationClaim(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    text: str
+    source_ids: list[str]
+
+
+class Answer(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    items: list[AnswerItem]
+    explanation_claims: list[ExplanationClaim]
+    qualifications: list[str]
+
+
+class SourceExcerpt(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    field: Literal["title", "abstract"]
+    start: int
+    end: int
+    text: str
+
+
+class Source(BaseModel):
+    """A paper shown to the model for this response. `source_id` is local to
+    the response (S1, S2, ...); URLs are built from stored PMIDs (6.3)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    source_id: str
+    pmid: Pmid
+    title: str
+    url: str
+    abstract: str
+    journal: str | None
+    year: int | None
+    source_status: SourceStatus
+    retrieval_rank: int
+    retrieval_method: RetrievalMethod
+    excerpts: list[SourceExcerpt]
+
+
+class ClarificationRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    question: str
+    token: str
+
+
+class AnswerResponse(BaseModel):
+    """Everything the public API returns. No reference answers, split labels,
+    provider errors, prompts, or credentials (technical PRD section 4)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    schema_version: str = SCHEMA_VERSION
+    request_id: str
+    outcome: Outcome
+    message: str
+    answer: Answer | None = None
+    sources: list[Source] = []
+    clarification: ClarificationRequest | None = None
+    corpus_version: str | None = None
