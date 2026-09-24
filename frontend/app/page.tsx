@@ -1,99 +1,183 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiBaseUrl, fetchHealth, type Health } from "@/lib/api";
+import { useEffect, useRef, useState } from "react";
+import {
+  ask,
+  AskError,
+  fetchCoverage,
+  type AnswerResponse,
+  type Coverage,
+} from "@/lib/api";
+import { AnswerView } from "./answer-view";
 import styles from "./page.module.css";
 
-type State =
-  | { phase: "loading" }
-  | { phase: "ok"; health: Health }
-  | { phase: "error"; message: string };
+const MAX_QUESTION = 2000;
+const MAX_CLARIFICATION = 1000;
 
-/** Never throws; always settles to a displayable state. */
-async function probe(signal?: AbortSignal): Promise<State> {
-  try {
-    return { phase: "ok", health: await fetchHealth(signal) };
-  } catch (error) {
-    return {
-      phase: "error",
-      message: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
+type Pending = { question: string; clarification?: { token: string; answer: string } };
 
 export default function Page() {
-  const [state, setState] = useState<State>({ phase: "loading" });
+  const [question, setQuestion] = useState("");
+  const [clarificationAnswer, setClarificationAnswer] = useState("");
+  const [result, setResult] = useState<AnswerResponse | null>(null);
+  const [asked, setAsked] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    probe(controller.signal).then((next) => {
-      if (!controller.signal.aborted) setState(next);
-    });
+    fetchCoverage(controller.signal).then(setCoverage, () => {});
     return () => controller.abort();
   }, []);
 
-  const recheck = () => {
-    setState({ phase: "loading" });
-    probe().then(setState);
-  };
+  async function submit(payload: Pending) {
+    if (pending) return; // duplicate clicks do nothing while a request runs
+    setPending(true);
+    setError(null);
+    try {
+      const response = await ask(payload);
+      setResult(response);
+      setAsked(payload.question);
+      if (response.outcome !== "needs_clarification") setClarificationAnswer("");
+      requestAnimationFrame(() => resultRef.current?.focus());
+    } catch (e) {
+      // Entered text is kept so the visitor can retry without retyping.
+      setError(e instanceof AskError ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function onAsk(event: React.FormEvent) {
+    event.preventDefault();
+    const text = question.trim();
+    if (!text) return;
+    setResult(null);
+    void submit({ question: text });
+  }
+
+  function onClarify(event: React.FormEvent) {
+    event.preventDefault();
+    const answer = clarificationAnswer.trim();
+    if (!answer || !result?.clarification || !asked) return;
+    void submit({
+      question: asked,
+      clarification: { token: result.clarification.token, answer },
+    });
+  }
+
+  const needsClarification = result?.outcome === "needs_clarification" && result.clarification;
 
   return (
     <main className={styles.main}>
-      <p className={styles.eyebrow}>Milestone 1 · service compatibility</p>
-      <h1 className={styles.title}>Biomedical Literature Assistant</h1>
-      <p className={styles.lead}>
-        This page exists to prove the frontend can reach the Python backend. The
-        question-and-answer interface is milestone 5.
-      </p>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Biomedical Literature Assistant</h1>
+        <p className={styles.lead}>
+          Ask a focused biomedical question with a specific answer: a gene, drug, protein,
+          disease, or a short list of them. Answers come only from published abstracts in
+          a fixed collection, with the supporting text quoted.
+        </p>
+        <details className={styles.scope}>
+          <summary>What this can and cannot answer</summary>
+          <ul>
+            <li>{coverage?.scope ?? "Published PubMed titles and abstracts only; no full text."}</li>
+            <li>
+              {coverage?.collection ??
+                "A fixed collection of PubMed records; it is not a search of all of PubMed."}
+            </li>
+            <li>
+              Not supported:{" "}
+              {(coverage?.not_supported ?? ["personal medical advice"]).join("; ")}.
+            </li>
+            <li>
+              This is a research prototype. It is not medical advice, and answers can be
+              wrong or incomplete even when every quote is genuine.
+            </li>
+            {coverage && (
+              <li>
+                Limit: {coverage.limits.questions_per_hour} questions per hour. Snapshot date:{" "}
+                {coverage.snapshot_date}.
+              </li>
+            )}
+          </ul>
+        </details>
+      </header>
 
-      <section className={styles.card} aria-labelledby="status-heading">
-        <div className={styles.cardHead}>
-          <h2 id="status-heading">Backend status</h2>
-          <button className={styles.button} onClick={recheck}>
-            Re-check
+      <form className={styles.form} onSubmit={onAsk}>
+        <label htmlFor="question" className={styles.label}>
+          Research question
+        </label>
+        <textarea
+          id="question"
+          className={styles.textarea}
+          value={question}
+          maxLength={MAX_QUESTION}
+          rows={3}
+          placeholder="e.g. Which kinases phosphorylate the protein Bora?"
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onAsk(e);
+          }}
+          disabled={pending}
+          aria-describedby="question-hint"
+        />
+        <div className={styles.formRow}>
+          <span id="question-hint" className={styles.hint}>
+            {question.length}/{MAX_QUESTION} · Ctrl/⌘ + Enter to ask
+          </span>
+          <button className={styles.button} type="submit" disabled={pending || !question.trim()}>
+            {pending ? "Working…" : "Ask"}
           </button>
         </div>
+      </form>
 
-        <p className={styles.target}>
-          <span>Target</span>
-          <code>{apiBaseUrl()}/api/health</code>
-        </p>
+      <div aria-live="polite" className={styles.status}>
+        {pending && (
+          <p className={styles.pending}>
+            Searching the collection and checking every quote against its source. This
+            usually takes 10–60 seconds.
+          </p>
+        )}
+        {error && !pending && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
 
-        <div aria-live="polite">
-          {state.phase === "loading" && <p className={styles.muted}>Checking…</p>}
+      {needsClarification && !pending && (
+        <form className={styles.clarify} onSubmit={onClarify}>
+          <label htmlFor="clarification" className={styles.label}>
+            {result.clarification!.question}
+          </label>
+          <input
+            id="clarification"
+            className={styles.input}
+            value={clarificationAnswer}
+            maxLength={MAX_CLARIFICATION}
+            onChange={(e) => setClarificationAnswer(e.target.value)}
+            autoFocus
+          />
+          <div className={styles.formRow}>
+            <span className={styles.hint}>One clarification is allowed per question.</span>
+            <button
+              className={styles.button}
+              type="submit"
+              disabled={pending || !clarificationAnswer.trim()}
+            >
+              Continue
+            </button>
+          </div>
+        </form>
+      )}
 
-          {state.phase === "error" && (
-            <div className={styles.bad}>
-              <strong>Not reachable.</strong>
-              <p>{state.message}</p>
-              <p className={styles.muted}>
-                Start it with <code>uv run uvicorn app:app --port 8010</code> in{" "}
-                <code>backend/</code>.
-              </p>
-            </div>
-          )}
-
-          {state.phase === "ok" && (
-            <div className={styles.good}>
-              <strong>Reachable.</strong>
-              <dl className={styles.facts}>
-                <dt>Service version</dt>
-                <dd>{state.health.service_version}</dd>
-                <dt>Corpus version</dt>
-                <dd>{state.health.corpus_version ?? "none frozen yet"}</dd>
-                <dt>Pinecone configured</dt>
-                <dd>{state.health.providers_configured.pinecone ? "yes" : "no"}</dd>
-                <dt>OpenRouter configured</dt>
-                <dd>{state.health.providers_configured.openrouter ? "yes" : "no"}</dd>
-              </dl>
-              <p className={styles.muted}>
-                &ldquo;Configured&rdquo; means a key is present, not that the provider
-                has been called.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <div ref={resultRef} tabIndex={-1} className={styles.resultAnchor}>
+        {result && !pending && result.outcome !== "needs_clarification" && (
+          <AnswerView result={result} />
+        )}
+      </div>
     </main>
   );
 }
