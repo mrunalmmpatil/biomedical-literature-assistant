@@ -167,8 +167,8 @@ def test_invalid_citation_gets_one_retry_then_answers(corpus):
     assert "quote not found in S1" in llm.users[2]
 
 
-def test_invalid_citation_twice_is_service_unavailable_never_a_partial_answer(corpus):
-    llm = Script(ANSWERABLE, BAD_QUOTE, BAD_QUOTE)
+def test_invalid_citation_every_time_is_service_unavailable_never_a_partial_answer(corpus):
+    llm = Script(ANSWERABLE, BAD_QUOTE, BAD_QUOTE, BAD_QUOTE)
     response, diag = service(corpus, llm).answer("Which enzyme does allopurinol inhibit?")
     assert response.outcome is Outcome.SERVICE_UNAVAILABLE
     assert response.answer is None and response.sources == []
@@ -191,16 +191,28 @@ def test_one_transient_failure_is_retried(corpus):
     assert [a.get("error") for a in diag.attempts] == ["ProviderUnavailable", None, None]
 
 
-def test_only_one_retry_per_request(corpus):
-    llm = Script(ProviderUnavailable("busy"), ANSWERABLE, MalformedOutput("junk"))
+def test_two_retries_per_request_at_most(corpus):
+    llm = Script(
+        ProviderUnavailable("busy"),
+        ANSWERABLE,
+        ProviderUnavailable("busy"),
+        MalformedOutput("junk"),
+    )
     response, _ = service(corpus, llm).answer("Which enzyme does allopurinol inhibit?")
     assert response.outcome is Outcome.SERVICE_UNAVAILABLE
-    assert len(llm.calls) == 3
+    assert len(llm.calls) == 4
+
+
+def test_a_second_transient_failure_is_now_retried(corpus):
+    llm = Script(ProviderUnavailable("busy"), ANSWERABLE, ProviderUnavailable("busy"), GOOD)
+    response, diag = service(corpus, llm).answer("Which enzyme does allopurinol inhibit?")
+    assert response.outcome is Outcome.ANSWERED
+    assert len(diag.attempts) == 4
 
 
 def test_timeout_maps_to_504(corpus):
     response, diag = service(
-        corpus, Script(ProviderTimeout("slow"), ProviderTimeout("slow"))
+        corpus, Script(ProviderTimeout("slow"), ProviderTimeout("slow"), ProviderTimeout("slow"))
     ).answer("Which enzyme does allopurinol inhibit?")
     assert response.outcome is Outcome.SERVICE_UNAVAILABLE
     assert diag.http_status == 504
