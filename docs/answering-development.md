@@ -241,12 +241,42 @@ rate-limited on every attempt, and the other structured-output model was too
 slow for the time budget. Cost: 30 free-model requests, **$0**. This project's
 key has recorded no spend.
 
-### Next decisions for Milestone 4
+## Prompt version 3: claim discipline (tried, not adopted)
 
-- **Claim discipline.** Try the quote and claim constraints above as prompt
-  version 3, measured on the same development questions with Nemotron.
-- **Living with provider failures.** Within the free-only constraint, the
-  options are to report the non-answer rate honestly (the current behavior),
-  or to spend the attempt budget differently, for example allowing a second
-  transient retry. The latter changes the technical PRD 8.1 defaults and
-  needs agreement.
+Prompt 3 told the model that each claim may only restate its quote (no
+"indicating", no widening scope, keep conditions and comparisons), that every
+quote must be a complete sentence, and that a fact question gets exactly one
+item. The fixtures passed 11 of 11 (after one retest of a provider 503).
+Development run:
+[`answers-development-nemotron-3-super-120b-a12b-free-20260924T163946Z`](../evaluation/results/answers-development-nemotron-3-super-120b-a12b-free-20260924T163946Z.json).
+
+| | Prompt 2 | Prompt 3 |
+|---|---:|---:|
+| Answered (of 50) | 36 | **18** |
+| Fact strict accuracy, all attempted | 0.44 | 0.20 |
+| Fact strict accuracy, when answered | 0.61 (18) | 0.45 (11) |
+| List F1, all attempted | 0.37 | 0.09 |
+| List F1, when answered | 0.51 (18) | 0.34 (7) |
+| Generation requests timed out | 9 | **34** |
+| Generation requests overloaded (503) | 11 | 21 |
+| Successful generation latency, p50 | 14.9s | 20.4s |
+| Claims supported | 78 of 87 (90%) | 35 of 36 (97%) |
+
+**Reading:** prompt 3 produced cleaner claims. Every quote was a full sentence
+and claims restated them. But the model spent longer per answer (p50 20.4s
+against 14.9s), and generation timeouts rose from 9 to 34. The claim-support
+gain is measured on the 18 questions that were answered, which are
+probably the easier ones, so the gain is overstated. Provider overload was
+also worse on the day of the prompt-3 run, and the two runs cannot fully
+separate prompt effects from service conditions. Prompt 3 also exposed a
+separate gap: answer **items** need only source IDs, not quotes, so an item
+(for example a listed side effect) can appear without a quote behind it.
+
+**Decision:** prompt 3 is **not adopted**. It halved the answered questions and
+lowered accuracy. Prompt 2 is restored by a revert commit, keeping version
+number 2 so its cached completions stay valid.
+
+### Next decisions for Milestone 4
+- **Provider failures: a second retry (agreed by the project owner,
+  2026-09-24).** Technical PRD 8.1 now allows 4 attempts and 2 retries per
+  request, within the unchanged 90s deadline. Measured next, with prompt 2.

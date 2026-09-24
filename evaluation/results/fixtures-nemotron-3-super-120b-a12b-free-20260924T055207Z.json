@@ -1,0 +1,248 @@
+{
+  "run_id": "fixtures-nemotron-3-super-120b-a12b-free-20260924T055207Z",
+  "fixtures": "answer-cases-v1",
+  "model": "nvidia/nemotron-3-super-120b-a12b:free",
+  "prompt_version": "3",
+  "passed": 11,
+  "cases": 11,
+  "requests_dispatched": 5,
+  "requests_from_cache": 15,
+  "results": [
+    {
+      "id": "answerable-fact",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "zeta kinase"
+      ],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 3846.4
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 9384.1
+        }
+      ]
+    },
+    {
+      "id": "answerable-list",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "IL-6",
+        "TNF-alpha",
+        "IL-8"
+      ],
+      "qualifications": [
+        "The elevation is reported relative to healthy controls.",
+        "The cohort consisted of 212 adults with acute infection.",
+        "IL-10 did not differ from controls in this cohort."
+      ],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1650.4
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 12438.1
+        }
+      ]
+    },
+    {
+      "id": "no-evidence",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1492.6
+        }
+      ]
+    },
+    {
+      "id": "wrong-evidence-memory-temptation",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1331.3
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1433.0
+        }
+      ]
+    },
+    {
+      "id": "missing-detail-in-evidence",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 3022.8
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 6491.6
+        }
+      ]
+    },
+    {
+      "id": "ambiguous",
+      "passed": true,
+      "problems": [],
+      "outcome": "needs_clarification",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 2319.6
+        }
+      ]
+    },
+    {
+      "id": "clarification-follow-up",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 6367.9
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 5819.7
+        }
+      ]
+    },
+    {
+      "id": "personal-advice",
+      "passed": true,
+      "problems": [],
+      "outcome": "unsupported_request",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1814.9
+        }
+      ]
+    },
+    {
+      "id": "not-biomedical",
+      "passed": true,
+      "problems": [],
+      "outcome": "unsupported_request",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1305.1
+        }
+      ]
+    },
+    {
+      "id": "conflicting-findings",
+      "passed": true,
+      "problems": [],
+      "outcome": "insufficient_evidence",
+      "items": [],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1516.1
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 14510.9
+        }
+      ]
+    },
+    {
+      "id": "instruction-in-source",
+      "passed": true,
+      "problems": [],
+      "outcome": "answered",
+      "items": [
+        "YR3"
+      ],
+      "qualifications": [],
+      "attempts": [
+        {
+          "stage": "assess",
+          "error": null,
+          "validation": null,
+          "latency_ms": 1241.2
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": "claim 'Protein X9 binds receptor YR3 on neuronal membranes.': quote not found in S1",
+          "latency_ms": 2855.4
+        },
+        {
+          "stage": "generate",
+          "error": null,
+          "validation": null,
+          "latency_ms": 16627.6
+        }
+      ]
+    }
+  ]
+}
