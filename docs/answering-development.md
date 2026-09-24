@@ -208,11 +208,45 @@ anything its quote does not say.
 5. **The per-request timeout rose from 25s to 45s** after measured generations
    of 19–24s.
 
+## Free-model comparison: model-comparison-v1 (registered; incumbent kept)
+
+Registered before any run ([`model-comparison-v1.json`](../evaluation/configs/model-comparison-v1.json),
+commit `8acd206`): every free model with strict-schema support that is not a
+preview, stealth, audio, very small, or random-router model. Gate 1 is one
+structured-output probe. Gate 2 is the 11 fixtures, where any failure on a
+safety case excludes the model. Models passing both gates would then get the
+full development run.
+
+| Model | Gate 1 (probe) | Gate 2 (fixtures) | Result |
+|---|---|---|---|
+| `google/gemma-4-31b-it:free` | 429 "rate-limited upstream" on 4 of 4 attempts, spaced a minute apart | not reached | **Excluded: unavailable** |
+| `google/gemma-4-26b-a4b-it:free` | 429 "rate-limited upstream" on 4 of 4 attempts | not reached | **Excluded: unavailable** |
+| `nex-agi/nex-n2.5-pro:free` | pass (the first probe hit the probe script's own timeout) | 9 of 11 pass; **both safety-relevant failures were generation timeouts**, on the first run and on a retest | **Excluded** |
+| `nvidia/nemotron-3-super-120b-a12b:free` (incumbent) | pass | 11 of 11 | **Kept** |
+
+**Interpretation, disclosed:** the Gate 2 rule was written with unsafe
+behavior in mind. nex-n2.5-pro did not follow the planted instruction. It
+**never produced an answer to check**, because each generation exceeded 45s
+(its assessment step alone took about 20s, against about 4s for Nemotron). The
+retest was allowed because a timeout is not evidence of either kind. After two
+timeouts, the safety case remained untested, and a model that cannot be shown
+to pass the safety cases is excluded. The fixture results are in
+[`fixtures-nex-n2.5-pro-free-20260924T043207Z`](../evaluation/results/fixtures-nex-n2.5-pro-free-20260924T043207Z.json)
+and the retest after it.
+
+**Outcome:** no candidate passed both gates, so no development runs were
+needed and **`nvidia/nemotron-3-super-120b-a12b:free` stays pinned**. The
+reliability problem is shared across the free tier: Google's free pool was
+rate-limited on every attempt, and the other structured-output model was too
+slow for the time budget. Cost: 30 free-model requests, **$0**. This project's
+key has recorded no spend.
+
 ### Next decisions for Milestone 4
 
-- **Provider reliability.** Try other free models with strict-schema support
-  as separately identified development runs (technical PRD 6.2: never mix
-  models within a run). The account's allowance is 1,000 requests per day, so
-  a comparison costs little.
 - **Claim discipline.** Try the quote and claim constraints above as prompt
-  version 3.
+  version 3, measured on the same development questions with Nemotron.
+- **Living with provider failures.** Within the free-only constraint, the
+  options are to report the non-answer rate honestly (the current behavior),
+  or to spend the attempt budget differently, for example allowing a second
+  transient retry. The latter changes the technical PRD 8.1 defaults and
+  needs agreement.

@@ -46,7 +46,7 @@ from bla.benchmark.llm_budget import (
 from bla.clarification import ClarificationSigner
 from bla.contracts import Outcome
 from bla.ingest.snapshot import read_papers, sha256
-from bla.llm import OpenRouter, daily_allowance
+from bla.llm import MODEL, OpenRouter, daily_allowance
 from bla.retrieval.bm25 import BM25Retriever
 
 LEDGER = REPO / "data" / "openrouter" / "ledger"
@@ -60,6 +60,7 @@ def main() -> int:
     p.add_argument("--benchmark", default="bioasq14b-v1")
     p.add_argument("--split", default="development", choices=["development"])
     p.add_argument("--limit", type=int, default=None, help="first N questions by ID")
+    p.add_argument("--model", default=MODEL, help="pinned OpenRouter model ID for this run")
     args = p.parse_args()
 
     bench_path = REPO / "data" / "benchmark" / args.benchmark / "questions.jsonl"
@@ -82,7 +83,7 @@ def main() -> int:
         f"== OpenRouter free-model allowance: {allowance.used}/{allowance.limit} used, "
         f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
     )
-    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"]), CACHE, ledger)
+    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"], model=args.model), CACHE, ledger)
     service = AnswerService(
         BM25Retriever(papers),
         {paper.pmid: paper for paper in papers},
@@ -140,7 +141,8 @@ def main() -> int:
         rows.append(row)
         print(f"  {q.id} {q.type.value:<4} {response.outcome.value:<22} {row.get('score', '')}")
 
-    run_id = f"answers-{args.split}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
+    model_tag = args.model.split("/")[-1].replace(":", "-")
+    run_id = f"answers-{args.split}-{model_tag}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     run_dir = REPO / "evaluation" / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "questions.json").write_text(json.dumps(rows, indent=1, default=str))
