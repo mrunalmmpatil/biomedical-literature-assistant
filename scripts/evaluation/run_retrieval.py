@@ -29,6 +29,8 @@ import time
 from datetime import UTC, datetime
 from importlib.metadata import version
 
+import final_guard
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "backend"))
 
@@ -79,8 +81,11 @@ def main() -> int:
     p.add_argument(
         "--split",
         default="development",
-        choices=["development"],
-        help="only the development split; the test split is Milestone 6",
+        choices=["development", "test"],
+        help="the test split needs --final and runs once (Milestone 6)",
+    )
+    p.add_argument(
+        "--final", type=pathlib.Path, default=None, help="frozen config for --split test"
     )
     p.add_argument(
         "--hybrid",
@@ -89,8 +94,27 @@ def main() -> int:
     )
     args = p.parse_args()
 
+    if (args.split == "test") != (args.final is not None):
+        raise SystemExit(
+            "--split test requires --final <frozen config>, and --final only applies to it"
+        )
     bench_path = REPO / "data" / "benchmark" / args.benchmark / "questions.jsonl"
     papers_path = REPO / "data" / "corpus" / args.benchmark / "papers.jsonl"
+    if args.final:
+        frozen = final_guard.load_frozen(args.final)
+        final_guard.check_first_run("retrieval-test-*.json")
+        final_guard.check_matches(
+            frozen["retrieval"],
+            {
+                "depth": DEPTH,
+                "bm25_k1": 1.5,
+                "bm25_b": 0.75,
+                "tokenizer_version": TOKENIZER_VERSION,
+                "unit_policy_version": UNIT_POLICY_VERSION,
+                "corpus_papers_sha256": sha256(papers_path.read_bytes()),
+                "benchmark_sha256": sha256(bench_path.read_bytes()),
+            },
+        )
     index_manifest = json.loads(
         (
             REPO
@@ -165,6 +189,7 @@ def main() -> int:
         "questions": len(rows),
         "depth": DEPTH,
         "query_input": "benchmark question text only",
+        "frozen_config": str(args.final) if args.final else None,
         "commit": git("rev-parse", "HEAD"),
         "working_tree_clean": git("status", "--porcelain") == "",
         "benchmark": {"name": args.benchmark, "questions_sha256": sha256(bench_path.read_bytes())},
