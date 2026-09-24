@@ -1,0 +1,65 @@
+{
+  "name": "final-v1",
+  "frozen_on": "2026-09-24",
+  "purpose": "The one-time held-out evaluation (technical PRD 9.1, 9.3). Committed before the test split is run; the runners refuse to run the test split unless every setting below matches what is in use.",
+  "answering": {
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "prompt_version": "2",
+    "max_attempts": 4,
+    "max_retries": 2,
+    "normalization_version": "1",
+    "retrieval": "bm25",
+    "corpus_papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+    "benchmark_sha256": "e0cce59bad2ba6f5c198e55caa10389e35233069e4183e5116093e999cf184b0"
+  },
+  "retrieval": {
+    "depth": 10,
+    "bm25_k1": 1.5,
+    "bm25_b": 0.75,
+    "tokenizer_version": "1",
+    "unit_policy_version": "1",
+    "corpus_papers_sha256": "3652a06b139458bf7efc2ed03441664b425de575a8bb25396ea51faa118deea9",
+    "benchmark_sha256": "e0cce59bad2ba6f5c198e55caa10389e35233069e4183e5116093e999cf184b0",
+    "pinecone_namespace": "bioasq14b-v1.u1",
+    "methods": ["bm25", "vector"]
+  },
+  "development_basis": {
+    "answer_runs_same_settings": [
+      "answers-development-nemotron-3-super-120b-a12b-free-20260924T170617Z",
+      "answers-development-nemotron-3-super-120b-a12b-free-20260924T182915Z",
+      "answers-development-nemotron-3-super-120b-a12b-free-20260924T185955Z"
+    ],
+    "answered_of_50": {"min": 37, "mean": 38.7, "max": 40},
+    "fact_strict_accuracy_all_attempted": {"min": 0.40, "mean": 0.427, "max": 0.44},
+    "list_f1_all_attempted": {"min": 0.268, "mean": 0.302, "max": 0.345},
+    "retrieval_run": "retrieval-development-20260923T234633Z",
+    "recall_at_10": {"bm25": 0.639, "vector": 0.652},
+    "mrr_at_10": {"bm25": 0.832, "vector": 0.804},
+    "claims_supported": "78 of 87 (90%), 1 unsupported (prompt 2 review)"
+  },
+  "hard_gates": {
+    "note": "Software correctness. Each must hold on every held-out question; any failure is a defect, whatever the quality metrics say.",
+    "complete_accounting": "all 50 test questions have a recorded outcome or documented failure",
+    "no_unknown_source_citations": "every cited source ID is one the model was shown",
+    "excerpts_match_source": "every displayed excerpt equals the stored abstract or title text at its offsets",
+    "distinct_outcomes": "every response carries exactly one of the five outcomes",
+    "no_answer_key_leakage": "only the question text reaches retrieval and generation; the application never imports the benchmark package (tested)"
+  },
+  "quality_targets": {
+    "rationale": "Set from three same-setting development runs, just below their observed minimum, so that performance matching development passes and a clear drop fails. Each fact or list question is worth 0.04 of its type's score, so the margin is about one to two questions. These targets qualify an evaluated research prototype; they say nothing about clinical usefulness.",
+    "answered_rate_min": 0.70,
+    "service_unavailable_rate_max": 0.25,
+    "fact_strict_accuracy_all_attempted_min": 0.35,
+    "list_f1_all_attempted_min": 0.25,
+    "claims_supported_rate_min": 0.85,
+    "claims_unsupported_rate_max": 0.05,
+    "end_to_end_latency_p50_seconds_max": 45,
+    "retrieval_recall_at_10_min": {"bm25": 0.55, "vector": 0.55},
+    "retrieval_mrr_at_10_min": {"bm25": 0.70, "vector": 0.70}
+  },
+  "reporting": {
+    "denominators": "all 50 attempted test questions; answered-only figures are reported beside them, never instead",
+    "single_run": "the held-out set is run once; its result is reported as-is and never overwritten. Development showed run-to-run variation of about ±0.04 in list F1, which is disclosed with the result",
+    "claim_review": "every claim in held-out answers, rubric supported / unclear / unsupported; reviewer: Claude (AI model), not expert or clinical validation"
+  }
+}
