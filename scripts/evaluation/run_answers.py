@@ -30,6 +30,8 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 
+import final_guard
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "backend"))
 
@@ -58,7 +60,13 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     p.add_argument("--benchmark", default="bioasq14b-v1")
-    p.add_argument("--split", default="development", choices=["development"])
+    p.add_argument("--split", default="development", choices=["development", "test"])
+    p.add_argument(
+        "--final",
+        type=pathlib.Path,
+        default=None,
+        help="frozen config (committed); required for, and only valid with, --split test",
+    )
     p.add_argument("--limit", type=int, default=None, help="first N questions by ID")
     p.add_argument("--model", default=MODEL, help="pinned OpenRouter model ID for this run")
     p.add_argument(
@@ -67,9 +75,32 @@ def main() -> int:
         help="ignore earlier cached completions: every request is live (a new cache per run)",
     )
     args = p.parse_args()
+    if (args.split == "test") != (args.final is not None):
+        raise SystemExit(
+            "--split test requires --final <frozen config>, and --final only applies to it"
+        )
+    if args.split == "test" and (args.limit or args.fresh):
+        raise SystemExit("the test run uses every question and its own cache; drop --limit/--fresh")
 
     bench_path = REPO / "data" / "benchmark" / args.benchmark / "questions.jsonl"
     papers_path = REPO / "data" / "corpus" / args.benchmark / "papers.jsonl"
+    frozen = None
+    if args.final:
+        frozen = final_guard.load_frozen(args.final)
+        final_guard.check_first_run("answers-test-*.json")
+        final_guard.check_matches(
+            frozen["answering"],
+            {
+                "model": args.model,
+                "prompt_version": PROMPT_VERSION,
+                "max_attempts": MAX_ATTEMPTS,
+                "max_retries": MAX_RETRIES,
+                "normalization_version": NORMALIZATION_VERSION,
+                "retrieval": "bm25",
+                "corpus_papers_sha256": sha256(papers_path.read_bytes()),
+                "benchmark_sha256": sha256(bench_path.read_bytes()),
+            },
+        )
     questions = []
     for line in bench_path.read_text().splitlines():
         record = json.loads(line)
@@ -89,7 +120,14 @@ def main() -> int:
         f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
     )
     started_at = datetime.now(UTC)
-    cache = CACHE / f"fresh-{started_at:%Y%m%dT%H%M%SZ}" if args.fresh else CACHE
+    if frozen:
+        # Its own cache: nothing from development is reused, and an
+        # interrupted test run resumes without re-spending.
+        cache = CACHE / f"test-{frozen['name']}"
+    elif args.fresh:
+        cache = CACHE / f"fresh-{started_at:%Y%m%dT%H%M%SZ}"
+    else:
+        cache = CACHE
     llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"], model=args.model), cache, ledger)
     service = AnswerService(
         BM25Retriever(papers),
@@ -150,6 +188,15 @@ def main() -> int:
 
     model_tag = args.model.split("/")[-1].replace(":", "-")
     run_id = f"answers-{args.split}-{model_tag}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
+    if frozen and stopped:
+        # An incomplete held-out run is not a result: keep the detail, write no
+        # tracked result, and resume from the cache after the allowance resets.
+        partial = REPO / "evaluation" / "runs" / f"{run_id}-partial"
+        partial.mkdir(parents=True, exist_ok=True)
+        (partial / "questions.json").write_text(json.dumps(rows, indent=1, default=str))
+        raise SystemExit(
+            f"stopped after {len(rows)} questions ({stopped}); re-run the same command later"
+        )
     run_dir = REPO / "evaluation" / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "questions.json").write_text(json.dumps(rows, indent=1, default=str))
@@ -188,6 +235,7 @@ def main() -> int:
         "stopped": stopped,
         "questions_attempted": len(rows),
         "questions_planned": len(questions),
+        "frozen_config": str(args.final) if args.final else None,
         "commit": subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True
         ).stdout.strip(),
