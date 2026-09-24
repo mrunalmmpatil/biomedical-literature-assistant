@@ -30,7 +30,7 @@ from bla.benchmark.llm_budget import CachingLLM, DailyLedger, ceiling_from_allow
 from bla.clarification import ClarificationSigner
 from bla.contracts import Outcome, Paper
 from bla.corpus import content_hash, normalize_text
-from bla.llm import OpenRouter, daily_allowance
+from bla.llm import MODEL, OpenRouter, daily_allowance
 from bla.retrieval.bm25 import BM25Retriever
 
 FIXTURES = REPO / "evaluation" / "fixtures" / "answer-cases-v1.json"
@@ -86,6 +86,11 @@ def check(expect: dict, response, diag) -> list[str]:
 
 
 def main() -> int:
+    import argparse
+
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--model", default=MODEL, help="pinned OpenRouter model ID for this run")
+    args = p.parse_args()
     spec = json.loads(FIXTURES.read_text())
     papers = fixture_papers(spec)
     allowance = daily_allowance(os.environ["OPENROUTER_API_KEY"])
@@ -95,7 +100,7 @@ def main() -> int:
         f"== OpenRouter free-model allowance: {allowance.used}/{allowance.limit} used, "
         f"{allowance.remaining} remaining; this run may send {ledger.ceiling - ledger.used()}"
     )
-    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"]), CACHE, ledger)
+    llm = CachingLLM(OpenRouter(os.environ["OPENROUTER_API_KEY"], model=args.model), CACHE, ledger)
     service = AnswerService(
         BM25Retriever(papers),
         {p.pmid: p for p in papers},
@@ -105,7 +110,8 @@ def main() -> int:
     )
     print(f"== {len(spec['cases'])} cases; ledger {ledger.used()}/{ledger.ceiling} used today")
 
-    run_id = f"fixtures-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
+    model_tag = args.model.split("/")[-1].replace(":", "-")
+    run_id = f"fixtures-{model_tag}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}"
     results, details = [], []
     for case in spec["cases"]:
         response, diag = service.answer(case["question"])
