@@ -279,4 +279,38 @@ number 2 so its cached completions stay valid.
 ### Next decisions for Milestone 4
 - **Provider failures: a second retry (agreed by the project owner,
   2026-09-24).** Technical PRD 8.1 now allows 4 attempts and 2 retries per
-  request, within the unchanged 90s deadline. Measured next, with prompt 2.
+  request, within the unchanged 90s deadline. Result below.
+
+## Two retries per request (adopted)
+
+Fresh run: no cached completions, prompt 2, Nemotron, and the Mac kept awake
+([`answers-development-nemotron-3-super-120b-a12b-free-20260924T170617Z`](../evaluation/results/answers-development-nemotron-3-super-120b-a12b-free-20260924T170617Z.json)).
+
+| | Prompt 2, 1 retry | Prompt 2, **2 retries** |
+|---|---:|---:|
+| Answered (of 50) | 36 | **39** |
+| Insufficient evidence / unsupported | 1 / 0 | 4 / 1 |
+| **Service unavailable** | **13** | **6** |
+| Answered only thanks to the second retry | — | 6 |
+| Fact strict accuracy, all attempted | 0.44 | 0.44 |
+| Fact strict accuracy, when answered | 0.61 | 0.55 |
+| List F1, all attempted | 0.37 | 0.27 |
+| List F1, when answered | 0.51 | 0.35 |
+| Provider attempts / provider failures | 119 / 31 | 131 / 31 |
+| Validation rejections | 3 | 7 |
+
+**Reading:**
+
+- **The second retry halved the service-unavailable outcomes (13 to 6).** Six
+  questions were answered only because of it. Adopted.
+- **The quality figures moved even though nothing that affects quality
+  changed.** List F1 fell from 0.37 to 0.27 with the same prompt, model, and
+  retrieval, and fact accuracy when answered fell from 0.61 to 0.55. One
+  question that was assessed as answerable before was now judged out of
+  scope. **The free model's outputs vary from run to run even at temperature
+  0**, and 25 questions per type are few. Differences of this size between
+  single development runs are not evidence of a real change. Any quality
+  target set before the held-out run (technical PRD 9.3) must allow for
+  run-to-run variation, measured by repeated runs.
+- The provider failure rate was unchanged (31 failed attempts in both
+  runs). The retry recovers from failures; it does not prevent them.
