@@ -248,7 +248,7 @@ These are configurable engineering defaults, not measured performance claims:
 | Total OpenRouter attempts per HTTP request | 4, including assessment, generation, and retries (raised from 3 on 2026-09-24; see below) |
 | Individual generation-provider request | 25 seconds |
 | End-to-end backend deadline | 90 seconds, or deployment ceiling minus margin if lower |
-| Public-client admission | 5 requests/hour as an initial abuse limit |
+| Public-client admission | 20 requests/hour per network address (raised from 5 on 2026-09-24, agreed by the project owner, because people sharing one network share the limit); a site-wide daily cap protects the provider allowance |
 
 At most two retries are allowed within the total attempt and time budgets (raised from one on 2026-09-24 with the project owner's agreement, after 26% of free-model attempts failed on the provider side during development; see docs/answering-development.md). Do not retry authentication errors or daily quota exhaustion. Respect Retry-After only when it fits the remaining deadline. Clarification submission is another HTTP request and consumes budget; the signed token does not grant free calls.
 

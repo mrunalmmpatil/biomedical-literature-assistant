@@ -29,7 +29,7 @@ integration). Every serverless instance sees the same counters.
 
 | Control | Setting | Response when exceeded |
 |---|---|---|
-| Questions per visitor | 5 per hour, keyed by a salted hash of the network address that rotates daily | 429 with a plain message; no provider request is sent |
+| Questions per visitor | 20 per hour (raised from 5 on 2026-09-24: everyone on one network, such as a classroom Wi-Fi, shares the limit), keyed by a salted hash of the network address that rotates daily | 429 with a plain message; no provider request is sent |
 | Site-wide provider attempts | 300 per UTC day, of the account's 1,000 free; counted before each dispatch | 429, "daily question limit" |
 | Repeated submissions | One request key per submission; a duplicate while running is refused, and a finished one is replayed for 10 minutes | 409, or the stored result |
 | Quota store unreachable | Generation fails closed | 503 |
@@ -60,7 +60,7 @@ Locally and on the deployed site:
   the follow-up ended in "not enough evidence", with no second clarification.
 - Personal medical advice was declined.
 - **Phone width (390px): no horizontal scrolling.**
-- **The 6th request in an hour from one visitor got HTTP 429** with a plain
+- **The 6th request in an hour from one visitor got HTTP 429** (under the original limit of 5) with a plain
   message, before any provider call.
 - The CORS preflight from the website's origin is allowed.
 

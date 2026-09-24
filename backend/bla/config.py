@@ -62,7 +62,9 @@ class Settings(BaseSettings):
     kv_rest_api_token: Optional = None
     public_daily_attempts: int = 300
     """Site-wide provider attempts per UTC day, below the 1,000 free allowance."""
-    client_hourly_limit: int = 5
+    client_hourly_limit: int = 20
+    """Per visitor (network address) per hour. Raised from 5 on 2026-09-24 with the
+    project owner's agreement: people sharing one network share the limit."""
 
     def origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
