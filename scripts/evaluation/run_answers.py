@@ -97,6 +97,7 @@ def main() -> int:
             "cited_pmids": sorted({s.pmid for s in response.sources if s.excerpts}),
             "shown_pmids": [s.pmid for s in response.sources],
             "reference_pmids_shown": sorted({s.pmid for s in response.sources} & set(q.pmids)),
+            "retrieved": diag.retrieval,
             "attempts": diag.attempts,
             "assessment": diag.assessment,
             "internal_reason": diag.internal_reason,

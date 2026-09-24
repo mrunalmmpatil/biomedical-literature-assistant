@@ -20,14 +20,31 @@ class Counting:
         return Completion({"n": self.calls}, "m", "m", "p", None, 12.5)
 
 
-def test_identical_prompts_are_served_from_cache(tmp_path):
+def test_a_rerun_is_served_from_cache(tmp_path):
     inner = Counting()
-    llm = CachingLLM(inner, tmp_path / "c", DailyLedger(tmp_path / "l"))
-    first = llm.complete("s", "u", "n", {})
-    again = llm.complete("s", "u", "n", {})
+    first = CachingLLM(inner, tmp_path / "c", DailyLedger(tmp_path / "l")).complete(
+        "s", "u", "n", {}
+    )
+    again = CachingLLM(inner, tmp_path / "c", DailyLedger(tmp_path / "l")).complete(
+        "s", "u", "n", {}
+    )
     assert inner.calls == 1
     assert again.content == first.content and again.cached and not first.cached
     assert again.latency_ms == 12.5
+
+
+def test_a_retry_of_an_identical_prompt_is_a_new_request(tmp_path):
+    inner = Counting()
+    llm = CachingLLM(inner, tmp_path / "c", DailyLedger(tmp_path / "l"))
+    first = llm.complete("s", "u", "n", {})
+    retry = llm.complete("s", "u", "n", {})
+    assert inner.calls == 2 and first.content != retry.content
+    rerun = CachingLLM(inner, tmp_path / "c", DailyLedger(tmp_path / "l"))
+    assert [rerun.complete("s", "u", "n", {}).content for _ in range(2)] == [
+        first.content,
+        retry.content,
+    ]
+    assert inner.calls == 2
 
 
 def test_a_changed_prompt_is_a_cache_miss(tmp_path):

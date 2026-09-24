@@ -9,7 +9,7 @@ the pipeline served. It returns the public response and, separately, internal
 diagnostics that are never sent to clients.
 
 Budgets per request: at most 3 provider attempts in total, at most one of them
-a transient retry, a 25s ceiling per attempt, and a 90s overall deadline.
+a transient retry, a 45s ceiling per attempt, and a 90s overall deadline.
 Daily quota exhaustion and authentication errors are never retried.
 """
 
@@ -27,6 +27,7 @@ from bla.answering.prompts import (
     PROMPT_VERSION,
     assess_user,
     generate_user,
+    retry_user,
 )
 from bla.clarification import Clarification, ClarificationSigner, InvalidToken
 from bla.contracts import (
@@ -196,7 +197,8 @@ class AnswerService:
             return self._respond(request_id, Outcome.INSUFFICIENT_EVIDENCE)
 
         sources = {sid: paper for sid, paper, _, _ in shown}
-        user = generate_user(question, [(sid, paper, text) for sid, paper, text, _ in shown])
+        first = generate_user(question, [(sid, paper, text) for sid, paper, text, _ in shown])
+        user = first
         while True:
             raw = self._call(
                 "generate", GENERATE_SYSTEM, user, "answer", GENERATE_SCHEMA, diag, budget
@@ -210,6 +212,9 @@ class AnswerService:
             if not self._may_retry(budget):
                 raise MalformedOutput(f"answer failed validation: {result.reason}")
             budget.retries += 1
+            # At temperature 0 an identical prompt tends to reproduce the same
+            # mistake, so the retry says what was rejected.
+            user = retry_user(first, result.reason[:200])
 
         if result.outcome == "insufficient_evidence":
             return self._respond(

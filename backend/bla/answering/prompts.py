@@ -9,7 +9,9 @@ from collections.abc import Sequence
 
 from bla.contracts import Paper
 
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"
+"""2: a rejected answer is retried with feedback naming the problem (2026-09-24,
+after development runs showed identical retries at temperature 0)."""
 
 # --- Assessment ---------------------------------------------------------------
 
@@ -128,6 +130,20 @@ GENERATE_SCHEMA = {
     "required": ["outcome", "items", "claims", "qualifications"],
     "additionalProperties": False,
 }
+
+
+RETRY_FEEDBACK = """\
+Your previous answer was rejected by an automatic check: {reason}.
+Every quote must be copied exactly, character for character, from the cited \
+source's title or abstract above. If you cannot quote a source for a claim, \
+leave that claim out. If nothing can be supported, return outcome \
+"insufficient_evidence"."""
+
+
+def retry_user(user: str, reason: str) -> str:
+    """The same question and sources, followed by why the last answer failed.
+    `reason` names a claim and a source ID only; it carries no source text."""
+    return f"{user}\n\n{RETRY_FEEDBACK.format(reason=reason)}"
 
 
 def generate_user(question: str, sources: Sequence[tuple[str, Paper, str]]) -> str:
