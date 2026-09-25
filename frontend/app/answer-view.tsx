@@ -88,7 +88,16 @@ export function AnswerView({ result }: { result: AnswerResponse }) {
             <p className={styles.muted}>{result.message}</p>
           </>
         ) : (
-          <p>{result.message}</p>
+          <>
+            <p>{result.message}</p>
+            {result.outcome === "insufficient_evidence" && (
+              <p className={styles.muted}>
+                The papers in this collection report research findings about specific genes,
+                proteins, drugs, and diseases, so they rarely define general textbook terms.
+                Questions about those specific subjects work best.
+              </p>
+            )}
+          </>
         )}
       </div>
 
