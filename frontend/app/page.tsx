@@ -430,8 +430,10 @@ function AssistantMessage({
   echo: string;
   onRetry?: () => void;
 }) {
+  // Shown only when the rewrite changed the words, not just capitals or spacing.
+  const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
   const interpreted =
-    result.interpreted_question && result.interpreted_question !== echo
+    result.interpreted_question && normalize(result.interpreted_question) !== normalize(echo)
       ? result.interpreted_question
       : null;
   return (

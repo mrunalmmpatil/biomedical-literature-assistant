@@ -98,23 +98,23 @@ refresh starts a new chat; there is no saved history, by design.
 
 ## Screenshots
 
-The question page states the collection's scope, what it cannot answer, and the request limit.
+The chat opens with example questions and a description of the collection: its data, the fields it covers, and what it answers. The message box stays at the bottom.
 
-![Ask a question](docs/screenshots/01-ask-a-question.png)
+![Welcome screen](docs/screenshots/01-welcome.png)
 
-While it works, the page says what is happening and how long it usually takes. The button is disabled, so a double click sends one request.
+An answer lists its items with numbered citations and a short explanation, each claim quoting its source.
 
-![Working](docs/screenshots/02-working.png)
+![Answer with citations](docs/screenshots/02-answer.png)
 
-An answer lists its items with numbered citations, a short explanation, and caveats the sources report. The sources follow, with the quoted text checked word for word against each stored abstract.
+A follow-up can refer to the earlier answer. Here "it" is rewritten as temozolomide, and the page shows the question it actually searched. Caveats the sources report follow the explanation.
 
-![Answer with citations](docs/screenshots/03-answer-with-citations.png)
+![Follow-up question](docs/screenshots/03-follow-up.png)
 
-A question missing a material detail gets exactly one clarifying question.
+The sources sit under each answer, in retrieval order, with the quoted sentences checked word for word against each stored abstract.
 
-![Clarification](docs/screenshots/04-clarification.png)
+![Sources](docs/screenshots/04-sources.png)
 
-When the collection does not support an answer, the assistant says so and shows what it did retrieve, instead of answering from the model's memory. Allopurinol is not in the collection.
+When the papers do not support an answer, the assistant says so instead of answering from the model's memory. None of the 3,653 papers defines "methylation", so it does not define it either.
 
 ![Not enough evidence](docs/screenshots/05-not-enough-evidence.png)
 
