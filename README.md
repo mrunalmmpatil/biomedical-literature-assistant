@@ -118,9 +118,13 @@ The sources sit under each answer, in retrieval order, with the quoted sentences
 
 ![Sources](docs/screenshots/05-sources.png)
 
+A question missing a material detail gets exactly one clarifying question, answered in the message box. "Ask something else instead" skips it.
+
+![Clarification](docs/screenshots/06-clarification.png)
+
 When the papers do not support an answer, the assistant says so instead of answering from the model's memory. None of the 3,653 papers defines "methylation", so it does not define it either.
 
-![Not enough evidence](docs/screenshots/06-not-enough-evidence.png)
+![Not enough evidence](docs/screenshots/07-not-enough-evidence.png)
 
 ## How it works
 
