@@ -226,6 +226,34 @@ exists, so the runners refuse to run it again. Evaluation runs keep a daily
 request ledger sized from the account's reported free allowance, and cache
 completions so re-scoring spends nothing.
 
+## Future scope
+
+- **Glossary of basic terms.** None of the papers defines general terms such
+  as "phosphorylation" or "methylation", so those questions get "not enough
+  evidence". Adding trusted definitions (NLM MeSH scope notes) to the
+  documents would let the assistant answer them, still with a quote.
+- **Explanation questions.** Accept "What does X do?" and "Explain…" questions
+  more broadly, answered only from quoted papers like every other answer.
+- **Fewer overstated claims.** The one missed target: 6 of 104 claims (5.8%)
+  said more than their quote, against a limit of 5%. A second check that
+  compares each claim with its quote could reduce this.
+- **Better search.** Match synonyms and abbreviations (PLN and phospholamban)
+  and rerank the retrieved papers; retrieval currently matches keywords only.
+- **More data.** Full-text papers instead of abstracts only, and a larger
+  collection refreshed from PubMed instead of a fixed snapshot.
+- **Speed and reliability.** Stream answers as they are written, and use a
+  more reliable model; the free model sometimes times out.
+- **Saved conversations.** Keep a chat across page refreshes, with optional
+  user accounts.
+
+<!--
+Future scope, not yet listed (kept for reference):
+- Measure follow-up quality. Follow-ups are covered by automated tests and were
+  tried by hand, but have not been scored on a set of conversations the way
+  single questions were (e.g. 20-30 follow-up conversations, scoring whether
+  the rewrite, the answer, and its quotes are correct).
+-->
+
 ## Documents
 
 | Document | What it covers |
