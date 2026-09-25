@@ -1,6 +1,7 @@
 # Milestone 5 — Web demo
 
-Status: **deployed 2026-09-24.**
+Status: **deployed 2026-09-24.** Updated 2026-09-24 and 2026-09-25 with a chat
+interface and follow-up questions, after the held-out evaluation.
 
 | | URL |
 |---|---|
@@ -9,8 +10,15 @@ Status: **deployed 2026-09-24.**
 
 ## What a visitor can do
 
-- Ask a focused biomedical fact or list question, and read the answer with
-  numbered citations [1] [2] that link to the sources.
+- Ask a focused biomedical fact or list question in a chat, and read the
+  answer with numbered citations [1] [2] that link to the sources. Example
+  questions on the opening screen can be sent with one click.
+- Ask follow-up questions that refer to earlier answers ("Which of those…",
+  "…respond to it?"). Each follow-up is rewritten as a standalone question
+  using the last ten questions and answers, then searched and checked like
+  any other question; the page shows the rewritten question.
+- Retry a reply that failed because the free model was unavailable, or start
+  a new chat.
 - Answer **one** clarification question when the question is missing a
   material detail. The original question is carried by a signed 10-minute
   token, and there is no second round.
@@ -19,8 +27,10 @@ Status: **deployed 2026-09-24.**
   abstract with the quoted spans highlighted; and a link to PubMed.
 - See plain outcomes when there is no answer: not enough evidence, outside
   scope, or service unavailable.
-- Read the collection's scope (abstracts only, a fixed collection, not all of
-  PubMed) and the fact that this is a research prototype, not medical advice.
+- Read what the collection holds and covers: its data (3,653 PubMed titles and
+  abstracts, a fixed collection), the fields and topics it covers, the kinds
+  of answers it gives, and the fact that this is a research prototype, not
+  medical advice.
 
 ## Public-demo protections (technical PRD 8.1–8.2)
 
@@ -70,4 +80,6 @@ Locally and on the deployed site:
   service is unavailable instead of guessing.
 - Answers take about 10–60 seconds, and there is no streaming, so answers are
   validated before they are shown.
-- A refresh clears the page. There is no saved history, by design.
+- A refresh starts a new chat. There is no saved history, by design.
+- Follow-up questions are covered by automated tests and were tried by hand,
+  but they are not part of the held-out evaluation.

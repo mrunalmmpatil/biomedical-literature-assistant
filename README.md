@@ -87,7 +87,7 @@ cd backend && uv run uvicorn app:app --port 8010
 cd frontend && npm run dev
 ```
 
-Open [the local app](http://localhost:3000). The page gives the question box,
+Open [the local app](http://localhost:3000). The page gives the message box,
 the collection's scope and limits, example questions, the pending state, the
 one-step clarification, the answer, and the source panels. It works as a chat:
 messages stack in a conversation, the message box stays at the bottom (Enter

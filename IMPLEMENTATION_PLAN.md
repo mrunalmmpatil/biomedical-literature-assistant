@@ -27,7 +27,7 @@ This document schedules future work. Application development, dependency install
 | Answer presentation | Direct answer, brief cited explanation, and inspectable source abstracts/passages |
 | Weak evidence | State that retrieved abstracts do not provide sufficient support; do not fill gaps from model memory |
 | Ambiguous question | Ask one clarifying question before searching |
-| Conversation scope | One research question and its clarification; follow-up conversations are deferred |
+| Conversation scope | One research question and its clarification; follow-up conversations are deferred (added on 2026-09-24, after the held-out evaluation) |
 | Budget | No paid services or paid fallback |
 
 The [technical PRD](TECHNICAL_PRD.md) defines contracts, operating rules, and implementation defaults. Defaults can be resolved through documented development work; they are not additional product decisions requiring individual approval.
