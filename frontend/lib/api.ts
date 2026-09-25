@@ -44,6 +44,10 @@ export type AnswerResponse = {
   sources: Source[];
   clarification: { question: string; token: string } | null;
   corpus_version: string | null;
+  /** For a follow-up: the standalone question actually searched and answered. */
+  interpreted_question?: string | null;
+  /** Present when a follow-up question may be asked about this response. */
+  followup_token?: string | null;
 };
 
 export type Coverage = {
@@ -55,11 +59,21 @@ export type Coverage = {
 };
 
 /** A failure the page can show as-is. Messages never contain server internals. */
-export class AskError extends Error {}
+export class AskError extends Error {
+  constructor(
+    message: string,
+    /** The HTTP status, when the service answered at all. */
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
 
 export type AskInput = {
   question: string;
   clarification?: { token: string; answer: string };
+  /** Asks about the earlier response that issued this token. */
+  followupToken?: string;
 };
 
 export async function ask(input: AskInput, signal?: AbortSignal): Promise<AnswerResponse> {
@@ -67,6 +81,7 @@ export async function ask(input: AskInput, signal?: AbortSignal): Promise<Answer
     question: input.question,
     clarification_token: input.clarification?.token ?? null,
     clarification_answer: input.clarification?.answer ?? null,
+    followup_token: input.followupToken ?? null,
     // One key per submission: a repeated click on the same submission is
     // answered once by the backend (technical PRD 8.2).
     request_key: crypto.randomUUID(),
@@ -97,13 +112,19 @@ export async function ask(input: AskInput, signal?: AbortSignal): Promise<Answer
       ? (data as { detail: string }).detail
       : null);
   if (response.status === 422) {
-    throw new AskError("The question could not be accepted. Please shorten or rephrase it.");
+    throw new AskError(
+      "The question could not be accepted. Please shorten or rephrase it.",
+      422,
+    );
   }
   // 503/504 from the answer service still carry a typed outcome body.
   if ((response.status === 503 || response.status === 504) && data && (data as AnswerResponse).request_id) {
     return data as AnswerResponse;
   }
-  throw new AskError(message ?? `The answer service returned an error (HTTP ${response.status}).`);
+  throw new AskError(
+    message ?? `The answer service returned an error (HTTP ${response.status}).`,
+    response.status,
+  );
 }
 
 export async function fetchCoverage(signal?: AbortSignal): Promise<Coverage> {

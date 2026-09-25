@@ -1,6 +1,8 @@
 """The question-to-outcome workflow (technical PRD 6 and 8.1).
 
-    validate input -> [verify clarification token] -> assess (provider call 1)
+    validate input -> [verify clarification or follow-up token]
+      -> assess (provider call 1; a follow-up is first rewritten as a standalone
+         question in the same call)
       -> retrieve -> [no evidence: insufficient_evidence, no generation]
       -> generate (provider call 2) -> validate -> outcome
 
@@ -23,10 +25,14 @@ from typing import Any
 from bla.answering.prompts import (
     ASSESS_SCHEMA,
     ASSESS_SYSTEM,
+    FOLLOWUP_PROMPT_VERSION,
+    FOLLOWUP_SCHEMA,
+    FOLLOWUP_SYSTEM,
     GENERATE_SCHEMA,
     GENERATE_SYSTEM,
     PROMPT_VERSION,
     assess_user,
+    followup_user,
     generate_user,
     retry_user,
 )
@@ -43,6 +49,7 @@ from bla.contracts import (
     Source,
     SourceExcerpt,
 )
+from bla.followup import Exchange, FollowUpSigner
 from bla.llm import MalformedOutput, ProviderError, ProviderTimeout
 from bla.retrieval import Retriever
 from bla.units import units
@@ -95,6 +102,9 @@ class Diagnostics:
     """Internal only: may contain model output. Never returned to clients."""
 
     prompt_version: str = PROMPT_VERSION
+    followup_prompt_version: str | None = None
+    question: str | None = None
+    """The question retrieval and generation ran on, once assessment passed."""
     attempts: list[dict[str, Any]] = field(default_factory=list)
     assessment: dict[str, Any] | None = None
     retrieval: list[dict[str, Any]] = field(default_factory=list)
@@ -123,11 +133,15 @@ class AnswerService:
         signer: ClarificationSigner,
         corpus_version: str | None,
         clock: Callable[[], float] = time.monotonic,
+        followups: FollowUpSigner | None = None,
     ) -> None:
+        """Without `followups`, no follow-up token is issued or accepted: the
+        evaluation runs the single-question pipeline only."""
         self._retriever = retriever
         self._papers = papers
         self._llm = llm
         self._signer = signer
+        self._followups = followups
         self._corpus_version = corpus_version
         self._clock = clock
 
@@ -139,11 +153,27 @@ class AnswerService:
         clarification_token: str | None = None,
         clarification_answer: str | None = None,
         request_id: str | None = None,
+        followup_token: str | None = None,
     ) -> tuple[AnswerResponse, Diagnostics]:
         question = _check_text(question, "question", MAX_QUESTION_CHARS)
         request_id = request_id or uuid.uuid4().hex
         diag = Diagnostics()
         budget = _Budget(self._clock)
+
+        if clarification_token is not None and followup_token is not None:
+            raise InputError("A question cannot be both a clarification and a follow-up.")
+        previous = None
+        if followup_token is not None:
+            if self._followups is None:
+                raise InputError(
+                    "Follow-up questions are not available. Please ask a new question."
+                )
+            try:
+                previous = self._followups.verify(followup_token)
+            except InvalidToken as exc:
+                raise InputError(
+                    "The earlier answer has expired. Please ask a new question."
+                ) from exc
 
         clarified = clarification_token is not None
         if clarified:
@@ -159,28 +189,51 @@ class AnswerService:
             question = f"{earlier.question}\n(Clarification: {earlier.prompt} {answer})"
 
         try:
-            response = self._run(question, clarified, request_id, diag, budget)
+            response = self._run(question, clarified, request_id, diag, budget, previous)
         except ProviderError as exc:
             response = self._unavailable(request_id, diag, exc)
+        else:
+            response = self._conversation_fields(response, diag, previous)
         diag.total_ms = round((DEADLINE_SECONDS - budget.remaining()) * 1000, 1)
         return response, diag
 
     # --- workflow -----------------------------------------------------------
 
-    def _run(self, question, clarified, request_id, diag, budget) -> AnswerResponse:
-        assessment = self._call(
-            "assess",
-            ASSESS_SYSTEM,
-            assess_user(question),
-            "assessment",
-            ASSESS_SCHEMA,
-            diag,
-            budget,
-        )
+    def _run(
+        self, question, clarified, request_id, diag, budget, previous: tuple[Exchange, ...] | None
+    ) -> AnswerResponse:
+        if previous is None:
+            assessment = self._call(
+                "assess",
+                ASSESS_SYSTEM,
+                assess_user(question),
+                "assessment",
+                ASSESS_SCHEMA,
+                diag,
+                budget,
+            )
+        else:
+            diag.followup_prompt_version = FOLLOWUP_PROMPT_VERSION
+            assessment = self._call(
+                "assess_followup",
+                FOLLOWUP_SYSTEM,
+                followup_user([(e.question, e.items) for e in previous], question),
+                "followup_assessment",
+                FOLLOWUP_SCHEMA,
+                diag,
+                budget,
+            )
         decision = assessment.get("decision")
         diag.assessment = {"decision": decision, "reason": str(assessment.get("reason", ""))[:300]}
         if decision == "out_of_scope":
             return self._respond(request_id, Outcome.UNSUPPORTED_REQUEST)
+        if previous is not None:
+            # From here on the follow-up is an ordinary question: retrieval,
+            # generation, and the citation check see only the rewritten text.
+            question = str(assessment.get("standalone_question", "")).strip()
+            if not question or len(question) > MAX_QUESTION_CHARS:
+                raise MalformedOutput("follow-up was not rewritten as a standalone question")
+            diag.question = question
         if decision == "needs_clarification":
             prompt = str(assessment.get("clarification_question", "")).strip()[:300]
             if clarified or not prompt:
@@ -199,6 +252,7 @@ class AnswerService:
         if decision != "answerable":
             raise MalformedOutput(f"unknown assessment decision {decision!r}")
 
+        diag.question = question
         hits = self._retriever.search(question, k=RETRIEVAL_DEPTH)
         diag.retrieval = [
             {"pmid": h.pmid, "rank": h.rank, "score": h.score, "unit": h.unit_id} for h in hits
@@ -249,6 +303,22 @@ class AnswerService:
         return self._respond(
             request_id, Outcome.ANSWERED, answer=answer, sources=self._sources(shown, result)
         )
+
+    def _conversation_fields(self, response, diag, previous) -> AnswerResponse:
+        """Show a follow-up's rewritten question, and let the visitor follow up
+        on any response that went through retrieval."""
+        update: dict[str, Any] = {}
+        if previous is not None and diag.question:
+            update["interpreted_question"] = diag.question
+        if (
+            self._followups
+            and diag.question
+            and response.outcome in (Outcome.ANSWERED, Outcome.INSUFFICIENT_EVIDENCE)
+        ):
+            items = tuple(i.text for i in response.answer.items) if response.answer else ()
+            history = (*(previous or ()), Exchange(diag.question, items))
+            update["followup_token"] = self._followups.issue(history)
+        return response.model_copy(update=update) if update else response
 
     def _call(self, stage, system, user, name, schema, diag, budget) -> dict:
         """One provider call, with at most one transient retry per request."""

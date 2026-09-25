@@ -23,6 +23,7 @@ from bla.answering.service import (
 from bla.clarification import ClarificationSigner
 from bla.config import settings
 from bla.contracts import Outcome
+from bla.followup import FollowUpSigner
 from bla.ingest.snapshot import read_papers
 from bla.llm import OpenRouter
 from bla.quota import (
@@ -93,6 +94,7 @@ class AnswerRequest(BaseModel):
     question: str = Field(max_length=MAX_QUESTION_CHARS)
     clarification_token: str | None = Field(default=None, max_length=4096)
     clarification_answer: str | None = Field(default=None, max_length=MAX_CLARIFICATION_CHARS)
+    followup_token: str | None = Field(default=None, max_length=131072)
     request_key: str | None = Field(default=None, max_length=128)
 
 
@@ -113,7 +115,14 @@ def answer(body: AnswerRequest, request: Request) -> JSONResponse:
     try:
         if quota:
             fingerprint = Quota.fingerprint(
-                body.model_dump(include={"question", "clarification_token", "clarification_answer"})
+                body.model_dump(
+                    include={
+                        "question",
+                        "clarification_token",
+                        "clarification_answer",
+                        "followup_token",
+                    }
+                )
             )
             key = body.request_key
             if key:
@@ -135,6 +144,7 @@ def answer(body: AnswerRequest, request: Request) -> JSONResponse:
                 body.question,
                 clarification_token=body.clarification_token,
                 clarification_answer=body.clarification_answer,
+                followup_token=body.followup_token,
             )
         except InputError as exc:
             if key:
@@ -206,4 +216,5 @@ def _service() -> AnswerService:
         MeteredLLM(llm, quota) if quota else llm,
         ClarificationSigner(settings.clarification_secret),
         corpus_version=settings.corpus_version,
+        followups=FollowUpSigner(settings.clarification_secret),
     )

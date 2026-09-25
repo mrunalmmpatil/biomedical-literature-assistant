@@ -167,3 +167,7 @@ class AnswerResponse(BaseModel):
     sources: list[Source] = []
     clarification: ClarificationRequest | None = None
     corpus_version: str | None = None
+    interpreted_question: str | None = None
+    """For a follow-up: the standalone question actually searched and answered."""
+    followup_token: str | None = None
+    """Present when a follow-up question may be asked about this response."""

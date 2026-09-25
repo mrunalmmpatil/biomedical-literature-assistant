@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { AnswerResponse, Excerpt, Source } from "@/lib/api";
 import styles from "./page.module.css";
 
-const OUTCOME_TITLES: Record<AnswerResponse["outcome"], string> = {
+export const OUTCOME_TITLES: Record<AnswerResponse["outcome"], string> = {
   answered: "Answer",
   needs_clarification: "More detail needed",
   insufficient_evidence: "Not enough evidence",
@@ -13,12 +13,29 @@ const OUTCOME_TITLES: Record<AnswerResponse["outcome"], string> = {
 };
 
 export function AnswerView({ result }: { result: AnswerResponse }) {
+  // A conversation shows several responses at once; their element IDs must not collide.
+  const prefix = `r-${result.request_id}`;
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const numbers = new Map(result.sources.map((s, i) => [s.source_id, i + 1]));
   const cite = (ids: string[]) =>
     ids
       .filter((id) => numbers.has(id))
       .map((id) => (
-        <a key={id} href={`#source-${id}`} className={styles.cite}>
+        <a
+          key={id}
+          href={`#${prefix}-source-${id}`}
+          className={styles.cite}
+          onClick={(e) => {
+            // Sources start collapsed; open them before jumping to the cited one.
+            e.preventDefault();
+            setSourcesOpen(true);
+            requestAnimationFrame(() => {
+              const target = document.getElementById(`${prefix}-source-${id}`);
+              target?.scrollIntoView({ block: "center" });
+              target?.focus();
+            });
+          }}
+        >
           [{numbers.get(id)}]
         </a>
       ));
@@ -31,9 +48,9 @@ export function AnswerView({ result }: { result: AnswerResponse }) {
         : styles.neutral;
 
   return (
-    <section className={styles.result} aria-labelledby="result-heading">
+    <section className={styles.result} aria-labelledby={`${prefix}-heading`}>
       <div className={`${styles.card} ${tone}`}>
-        <h2 id="result-heading" className={styles.resultTitle}>
+        <h2 id={`${prefix}-heading`} className={styles.resultTitle}>
           {OUTCOME_TITLES[result.outcome]}
         </h2>
 
@@ -76,30 +93,41 @@ export function AnswerView({ result }: { result: AnswerResponse }) {
       </div>
 
       {result.sources.length > 0 && (
-        <div className={styles.sources}>
-          <h2 className={styles.resultTitle}>Sources</h2>
+        <details
+          className={styles.sources}
+          open={sourcesOpen}
+          onToggle={(e) => setSourcesOpen(e.currentTarget.open)}
+        >
+          <summary className={styles.sourcesSummary}>
+            Sources ({result.sources.length})
+          </summary>
           <p className={styles.muted}>
             The papers retrieved for this question, in retrieval order. Highlighted text is
             what the answer quotes; it was checked word-for-word against the stored abstract.
           </p>
           <ol className={styles.sourceList}>
             {result.sources.map((source, i) => (
-              <SourceCard key={source.source_id} source={source} number={i + 1} />
+              <SourceCard
+                key={source.source_id}
+                source={source}
+                number={i + 1}
+                id={`${prefix}-source-${source.source_id}`}
+              />
             ))}
           </ol>
-        </div>
+        </details>
       )}
     </section>
   );
 }
 
-function SourceCard({ source, number }: { source: Source; number: number }) {
+function SourceCard({ source, number, id }: { source: Source; number: number; id: string }) {
   const [open, setOpen] = useState(false);
-  const abstractId = `abstract-${source.source_id}`;
+  const abstractId = `${id}-abstract`;
   const meta = [source.journal, source.year].filter(Boolean).join(" · ");
 
   return (
-    <li id={`source-${source.source_id}`} className={styles.source}>
+    <li id={id} tabIndex={-1} className={styles.source}>
       <p className={styles.sourceTitle}>
         <span className={styles.sourceNumber}>[{number}]</span> {source.title}
       </p>

@@ -143,6 +143,8 @@ If ambiguous, return one specific clarifying question. Include a short-lived ser
 
 After one clarification, either proceed with the combined question or return an explanation that more detail is still needed and invite a new question. Do not start a second clarification loop or treat it as general conversational memory. The evaluation pipeline counts clarification as an outcome; it does not use reference answers to simulate a helpful user.
 
+Follow-up questions (added 2026-09-24, after the held-out evaluation). An `answered` or `insufficient_evidence` response carries a signed follow-up token binding the last ten exchanges (each question as answered and the answer items shown), with a one-hour expiry and a signing key separate from clarification tokens. A follow-up request presents the token with the new question. The assessment call is replaced by a follow-up assessment (separate prompt, `FOLLOWUP_PROMPT_VERSION`) that rewrites the follow-up into a standalone question and classifies it by the same rules; retrieval, generation, and the citation check then run on the standalone question exactly as for any question, and the response returns it as `interpreted_question`. Each new token appends its exchange and drops the oldest, so no conversation is stored on the server. The single-question prompts stay those frozen for final-v1, and the evaluation runners do not enable follow-ups, so the held-out results describe single questions only; follow-up quality has not been evaluated.
+
 ### 6.2 Generation
 
 Select a specific currently available free OpenRouter model during feasibility work. Verify structured output or reliable JSON parsing with that model. Keep the model fixed within an evaluation run and record requested/returned model IDs and provider metadata when supplied. Do not use a randomly selecting free-model router for controlled comparisons. If the selected model becomes unavailable, pause or start a separately identified run with a replacement; never silently mix models.
@@ -230,7 +232,7 @@ Sources
 
 Show a simple pending state, prevent duplicate clicks, and preserve entered text after errors. Do not imply detailed backend progress without actual events. Non-streaming results are the starting default so validation happens before the answer is displayed. Source panels must support keyboard navigation and mobile layouts.
 
-Browser refresh may clear the current interaction; there is no saved history. Signed clarification tokens and request records expire rather than becoming permanent conversation storage.
+Browser refresh may clear the current interaction; there is no saved history. Signed clarification and follow-up tokens and request records expire rather than becoming permanent conversation storage.
 
 ## 8. Operational controls and hosting
 
@@ -321,7 +323,7 @@ IMPLEMENTATION_PLAN.md
 
 Large corpora, raw restricted datasets, answer keys, credentials, caches, and local environments are ignored. Track manifests, configurations, dependency locks, and permissible evaluation summaries. Do not publish downloaded data without checking its terms.
 
-Milestones and estimates remain in the implementation plan. Completion requires a reproducible setup, working deployed flow, separate retrieval and generation results, visible failures, and retained evaluation artifacts. Model fine-tuning, full-text ingestion, user accounts, follow-up chat, hybrid retrieval, and reranking remain deferred.
+Milestones and estimates remain in the implementation plan. Completion requires a reproducible setup, working deployed flow, separate retrieval and generation results, visible failures, and retained evaluation artifacts. Model fine-tuning, full-text ingestion, user accounts, hybrid retrieval, and reranking remain deferred. Follow-up questions were added after the held-out evaluation (section 6.1).
 
 ## 12. Implementation-time decisions and feasibility gates
 

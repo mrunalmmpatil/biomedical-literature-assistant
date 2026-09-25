@@ -88,10 +88,13 @@ cd frontend && npm run dev
 ```
 
 Open [the local app](http://localhost:3000). The page gives the question box,
-the collection's scope and limits, the pending state, the one-step
-clarification, the answer, and the source panels. It works with a keyboard
-(Ctrl/⌘+Enter to ask; the abstract toggles are buttons) and on phones. A
-refresh clears the page; there is no saved history, by design.
+the collection's scope and limits, example questions, the pending state, the
+one-step clarification, the answer, and the source panels. It works as a chat:
+messages stack in a conversation, the message box stays at the bottom (Enter
+sends, Shift+Enter adds a line), every message after an answer is a follow-up,
+a failed reply has **Try again**, and **New chat** starts over. It works with a keyboard
+(the abstract and source toggles are buttons) and on phones. A
+refresh starts a new chat; there is no saved history, by design.
 
 ## Screenshots
 
@@ -135,6 +138,17 @@ inside it are ignored (tested with a planted instruction). Every quote must
 appear verbatim in its cited source; the server computes offsets and builds
 URLs from stored PMIDs. An invalid answer is retried with feedback and is never
 shown in part.
+
+**Follow-ups.** Each answer returns a signed token holding the last ten
+questions and their answer items. A follow-up sends the token back; the assessment call then
+rewrites the follow-up into a standalone question ("What does the
+phosphorylation by the first of those kinases do?" becomes "What does the
+phosphorylation of Bora by Cdk1 do?") and classifies it. Retrieval,
+generation, and the citation check run on that question unchanged, and the
+page shows it. Each token adds its exchange and drops the oldest, and nothing
+is stored on the server. Follow-ups were added after the held-out evaluation and have not
+been evaluated; the single-question prompts are still the frozen final-v1
+ones, which a test checks by hash.
 
 **Limits.** At most 4 provider attempts and 2 retries per question, 45s per
 attempt, and a 90s deadline. On the public demo, Upstash Redis holds shared

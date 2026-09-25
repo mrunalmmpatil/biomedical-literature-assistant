@@ -16,7 +16,9 @@ class StubService:
         self.calls = 0
         self.raise_next = None
 
-    def answer(self, question, clarification_token=None, clarification_answer=None):
+    def answer(
+        self, question, clarification_token=None, clarification_answer=None, followup_token=None
+    ):
         self.calls += 1
         if self.raise_next:
             exc, self.raise_next = self.raise_next, None

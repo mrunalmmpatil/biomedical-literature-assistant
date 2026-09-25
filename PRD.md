@@ -44,7 +44,7 @@ Use BioASQ fact and list questions to define and evaluate the initial scope. Beg
 ## Implementation Decisions
 
 - Deliver a web-based question-answering experience with a direct answer, a brief cited explanation, and an inspectable evidence list.
-- Support one research question at a time. Ask one clarifying question when needed; follow-up conversations are deferred.
+- Support one research question at a time. Ask one clarifying question when needed. The web page works as a chat. Follow-up questions (added after the held-out evaluation) are rewritten into standalone questions using the last ten questions and answers, then answered like any other question; there is no saved conversation history.
 - Use retrieval-augmented generation: find relevant abstracts first, then generate an answer from that evidence.
 - Use abstracts only in the initial version. Full-text papers are deferred.
 - Build a mixed collection of supporting abstracts and other papers on related topics. Collection size is determined during implementation; no biomedical specialty has been selected.
